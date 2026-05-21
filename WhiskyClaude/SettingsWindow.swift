@@ -84,15 +84,15 @@ struct AboutTab: View {
                 .resizable()
                 .frame(width: 64, height: 64)
 
-            Text("WhiskyClaude")
+            Text("Whisky Claude")
                 .font(.title2.bold())
 
-            Text("by Adam Lyttle")
-                .font(.body)
+            Text("Forked from Notchy by Adam Lyttle (MIT)")
+                .font(.caption)
                 .foregroundStyle(.secondary)
 
-            Button("github.com/adamlyttleapps") {
-                if let url = URL(string: "https://github.com/adamlyttleapps") {
+            Button("github.com/adamlyttleapps/notchy") {
+                if let url = URL(string: "https://github.com/adamlyttleapps/notchy") {
                     NSWorkspace.shared.open(url)
                 }
             }
