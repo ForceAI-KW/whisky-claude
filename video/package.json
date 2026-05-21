@@ -1,0 +1,24 @@
+{
+  "name": "whisky-claude-video",
+  "version": "1.0.0",
+  "description": "Remotion launch video for Whisky Claude",
+  "private": true,
+  "scripts": {
+    "start": "npx remotion studio src/index.tsx",
+    "render": "npx remotion render src/index.tsx WhiskyClaudeLaunch /tmp/whisky-claude-launch.mp4 --codec=h264",
+    "render-square": "npx remotion render src/index.tsx WhiskyClaudeLaunchSquare /tmp/whisky-claude-launch-square.mp4 --codec=h264"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.464",
+    "@remotion/bundler": "4.0.464",
+    "@remotion/renderer": "4.0.464",
+    "remotion": "4.0.464",
+    "react": "18.3.1",
+    "react-dom": "18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "18.3.1",
+    "@types/react-dom": "18.3.1",
+    "typescript": "5.4.5"
+  }
+}
