@@ -187,9 +187,10 @@ final class MascotAnimationState {
 struct MascotContent: View {
     @State var state: MascotAnimationState
 
-    /// Layered attention/done bounce offset + rotation. Set by `runBounce`.
+    /// Layered attention/done bounce offset + rotation + scale. Set by `runBounce`.
     @State private var bounceOffset: CGFloat = 0
     @State private var bounceRotation: Double = 0
+    @State private var bounceScale: CGFloat = 1.0
 
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: false)) { timeline in
@@ -200,7 +201,7 @@ struct MascotContent: View {
                 .resizable()
                 .interpolation(.high)
                 .frame(width: MascotWindow.mascotSize, height: MascotWindow.mascotSize)
-                .scaleEffect(pose.scale)
+                .scaleEffect(pose.scale * bounceScale)
                 // Heavier shadow so the mascot reads as "sitting on" the menu
                 // bar's bottom edge instead of floating.
                 .shadow(color: .black.opacity(0.35), radius: 5, x: 0, y: 3)
@@ -315,31 +316,51 @@ struct MascotContent: View {
         return CGFloat(clamped * clamped * (3 - 2 * clamped))
     }
 
-    /// Attention/done peek-out — bigger downward dip + rotation wobble layered
-    /// on top of the ambient choreography. Always goes DOWN (more visible),
-    /// never UP (would clip into the notch's no-display zone).
+    /// Attention/done "freak out" — DRAMATIC layered animation designed to
+    /// grab attention. Combines a big downward peek, full rotation spin, and
+    /// a scale-pop. Overrides the ambient choreography's offsets via the
+    /// shared bounceOffset/bounceRotation channels.
+    ///
+    /// Attention = wilder: 3 jumps + full 360° spin + big scale pulses
+    /// Done      = calmer celebration: 2 jumps + half-spin + smaller pulse
     private func runBounce(kind: MascotBounceKind) {
         bounceOffset = 0
         bounceRotation = 0
+        bounceScale = 1.0
 
-        let bounces: Int = (kind == .attention) ? 3 : 2
-        let peakHeight: CGFloat = (kind == .attention) ? 14 : 9
-        let perBounce: Double = (kind == .attention) ? 0.32 : 0.38
-        let wobbleDeg: Double = (kind == .attention) ? 8 : 5
+        let isAttention = (kind == .attention)
+        let bounces: Int = isAttention ? 3 : 2
+        let peakHeight: CGFloat = isAttention ? 22 : 14
+        let perBounce: Double = isAttention ? 0.34 : 0.40
+        let popScale: CGFloat = isAttention ? 1.45 : 1.25
+        // Total rotation across all bounces — full 360° for attention,
+        // half-rotation for done.
+        let totalRotation: Double = isAttention ? 360.0 : 180.0
 
         for i in 0..<bounces {
             let start = Double(i) * perBounce
             let down = perBounce * 0.45
+
+            // Mid-air: peak height + scale pop + cumulative rotation
             DispatchQueue.main.asyncAfter(deadline: .now() + start) {
                 withAnimation(.spring(response: 0.20, dampingFraction: 0.55)) {
                     bounceOffset = peakHeight
-                    bounceRotation = (i % 2 == 0) ? wobbleDeg : -wobbleDeg
+                    bounceScale = popScale
+                    // Distribute the total rotation across the bounces so the
+                    // final landing has the character right-side-up again.
+                    bounceRotation = totalRotation * Double(i + 1) / Double(bounces)
                 }
             }
+            // Landing: snap back to baseline
             DispatchQueue.main.asyncAfter(deadline: .now() + start + down) {
-                withAnimation(.spring(response: 0.26, dampingFraction: 0.55)) {
+                withAnimation(.spring(response: 0.24, dampingFraction: 0.55)) {
                     bounceOffset = 0
-                    bounceRotation = 0
+                    bounceScale = 1.0
+                    // Only reset rotation on the FINAL landing so the spin
+                    // looks continuous across bounces.
+                    if i == bounces - 1 {
+                        bounceRotation = 0
+                    }
                 }
             }
         }

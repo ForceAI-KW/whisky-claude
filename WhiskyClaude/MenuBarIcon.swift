@@ -21,41 +21,10 @@ final class MenuBarIcon {
         statusItem.button?.imagePosition = .imageOnly
     }
 
+    /// Per Ahmad: the menu-bar icon stays STATIC — it's just the app logo
+    /// indicating Whisky Claude is running. All attention-grabbing happens
+    /// via the mascot under the notch + the sound.
     func onStateChange(_ state: AttentionKind) {
-        switch state {
-        case .waitingForInput:
-            pulse(times: 3)
-        case .taskCompleted:
-            pulse(times: 2)
-        case .working, .idle:
-            // No animation for transient working state; idle is the resting state.
-            break
-        }
-    }
-
-    /// Scale-bounce animation: 1.0 → 1.35 → 1.0 per bounce, using a
-    /// CAKeyframeAnimation. Visible even at small menu-bar size and in dark mode.
-    private func pulse(times: Int) {
-        guard let button = statusItem.button else { return }
-        button.wantsLayer = true
-        guard let layer = button.layer else { return }
-
-        let scale = CAKeyframeAnimation(keyPath: "transform.scale")
-        var values: [Double] = [1.0]
-        var keyTimes: [NSNumber] = [0.0]
-        let perBounce = 1.0 / Double(times)
-        for i in 0..<times {
-            values.append(1.35)
-            values.append(1.0)
-            keyTimes.append(NSNumber(value: perBounce * (Double(i) + 0.5)))
-            keyTimes.append(NSNumber(value: perBounce * Double(i + 1)))
-        }
-        scale.values = values
-        scale.keyTimes = keyTimes
-        scale.duration = Double(times) * 0.35
-        scale.calculationMode = .cubic
-        // Anchor at center so scaling doesn't shift the icon off the bar
-        layer.anchorPoint = CGPoint(x: 0.5, y: 0.5)
-        layer.add(scale, forKey: "bounce")
+        // intentionally no animation
     }
 }
