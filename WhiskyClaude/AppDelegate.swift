@@ -114,20 +114,30 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     @objc private func openClaudeInTerminalAction() {
-        openClaudeInTerminal()
+        // Explicit menu click — user definitely meant it, skip debounce.
+        openClaudeInTerminal(debounced: false)
     }
 
     /// Opens Terminal.app and runs `claude` in the user's home directory.
-    /// Wired to the menu item, the slap callback, and the wake-word callback.
-    /// Debounces re-entry within `openDebounceInterval` so two slaps or
-    /// three "hey whisky"s only open ONE session.
-    func openClaudeInTerminal() {
-        let now = CACurrentMediaTime()
-        if now - lastOpenedAt < openDebounceInterval {
-            NSLog("[WhiskyClaude] openClaudeInTerminal debounced — fired \(Int(now - lastOpenedAt))s ago")
-            return
+    ///
+    /// - Parameter debounced: when true (default — used by slap + wake-word
+    ///   callbacks), re-entry within `openDebounceInterval` is silently
+    ///   dropped so two slaps or three "hey whisky"s only open ONE session.
+    ///   When false (menu-click path), every call opens a fresh session
+    ///   because the user explicitly asked for one — no debounce needed.
+    func openClaudeInTerminal(debounced: Bool = true) {
+        if debounced {
+            let now = CACurrentMediaTime()
+            if now - lastOpenedAt < openDebounceInterval {
+                NSLog("[WhiskyClaude] openClaudeInTerminal debounced — fired \(Int(now - lastOpenedAt))s ago")
+                return
+            }
+            lastOpenedAt = now
+        } else {
+            // Still record the timestamp so a subsequent slap/wake-word right
+            // after a manual click is still debounced (avoids surprise double-opens).
+            lastOpenedAt = CACurrentMediaTime()
         }
-        lastOpenedAt = now
 
         let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
         // If Terminal already has at least one window open, create a NEW TAB
