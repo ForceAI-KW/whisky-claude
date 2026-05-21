@@ -57,6 +57,42 @@ class SettingsManager {
         }
     }
 
+    /// Absolute filesystem path to a user-picked custom attention sound,
+    /// or nil to use the bundled default. AVAudioPlayer supports any format
+    /// CoreAudio can decode: .mp3, .wav, .m4a, .aiff, .caf, etc.
+    var customAttentionSoundPath: String? {
+        didSet {
+            if let v = customAttentionSoundPath {
+                UserDefaults.standard.set(v, forKey: "customAttentionSoundPath")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "customAttentionSoundPath")
+            }
+            SoundPlayer.shared.invalidateCache(for: "waitingForInput")
+        }
+    }
+
+    /// Same as above for the done sound.
+    var customDoneSoundPath: String? {
+        didSet {
+            if let v = customDoneSoundPath {
+                UserDefaults.standard.set(v, forKey: "customDoneSoundPath")
+            } else {
+                UserDefaults.standard.removeObject(forKey: "customDoneSoundPath")
+            }
+            SoundPlayer.shared.invalidateCache(for: "taskCompleted")
+        }
+    }
+
+    /// Map a logical sound name to its custom override path (if any).
+    /// Read by SoundPlayer.resolveURL when playing.
+    func customSoundPath(for name: String) -> String? {
+        switch name {
+        case "waitingForInput": return customAttentionSoundPath
+        case "taskCompleted":   return customDoneSoundPath
+        default:                return nil
+        }
+    }
+
     init() {
         let defaults = UserDefaults.standard
         if defaults.object(forKey: "mascotVisible") == nil { defaults.set(true, forKey: "mascotVisible") }
@@ -72,5 +108,7 @@ class SettingsManager {
         clapSensitivity = defaults.double(forKey: "clapSensitivity")
         wakeWordEnabled = defaults.bool(forKey: "wakeWordEnabled")
         preventSleep = defaults.bool(forKey: "preventSleep")
+        customAttentionSoundPath = defaults.string(forKey: "customAttentionSoundPath")
+        customDoneSoundPath = defaults.string(forKey: "customDoneSoundPath")
     }
 }

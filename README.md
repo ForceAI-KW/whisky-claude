@@ -20,6 +20,7 @@ Plus:
 
 - **Slap the Mac** to open a new Claude terminal session — single firm tap on the lid, desk, or palm-rest. Detected on-device via Apple's `SoundAnalysis` framework.
 - **"Hey Claude" / "Hey Whisky"** wake words — on-device via Apple's `Speech` framework. Audio never leaves your Mac.
+- **Pick your own sounds** — Settings → General lets you replace the bundled attention + done audio with any local file (`.mp3` / `.wav` / `.m4a` / `.aiff` / `.caf`). Preview button next to each picker so you can audition before saving.
 - **Keeps your Mac awake** so long-running Claude Code sessions don't get interrupted by system idle sleep. (Display sleep still respected.)
 - **Menu bar icon** — static Claude logo; click for Open Terminal / Settings / Quit.
 
@@ -96,7 +97,7 @@ More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 Click the menu bar icon → **Settings…**
 
-- **General** — toggle the mascot, sounds, and the "keep Mac awake" feature
+- **General** — toggle the mascot, sounds, "keep Mac awake", **and pick custom audio files** for attention + done events (with a one-click preview button)
 - **Voice** — opt into slap detection (with sensitivity slider) and wake words
 - **About** — version info, links, and the uninstall button
 

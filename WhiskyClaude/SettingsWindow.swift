@@ -1,5 +1,6 @@
 import SwiftUI
 import AppKit
+import UniformTypeIdentifiers
 
 enum SettingsTab: String, CaseIterable {
     case about = "About"
@@ -50,9 +51,28 @@ struct GeneralTab: View {
 
             Toggle(isOn: $settings.soundsEnabled) {
                 Text("Play sound on Claude Code attention + completion")
-                Text("Audio fires when Claude Code's Notification or Stop hook triggers — uses your bundled custom MP3s.")
+                Text("Audio fires when Claude Code's Notification or Stop hook triggers.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+
+            if settings.soundsEnabled {
+                SoundPickerRow(
+                    label: "Attention sound",
+                    icon: "bell.fill",
+                    currentPath: settings.customAttentionSoundPath,
+                    previewName: "waitingForInput",
+                    onPick: { path in settings.customAttentionSoundPath = path },
+                    onReset: { settings.customAttentionSoundPath = nil }
+                )
+                SoundPickerRow(
+                    label: "Done sound",
+                    icon: "checkmark.seal.fill",
+                    currentPath: settings.customDoneSoundPath,
+                    previewName: "taskCompleted",
+                    onPick: { path in settings.customDoneSoundPath = path },
+                    onReset: { settings.customDoneSoundPath = nil }
+                )
             }
 
             Toggle(isOn: $settings.preventSleep) {
@@ -208,6 +228,78 @@ struct AboutTab: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .padding(.vertical, 16)
+    }
+}
+
+/// Compact row used in Settings > General for each customisable sound.
+/// Shows the current file (custom or default), a "Choose…" file picker,
+/// a "Preview" button, and a "Reset" button when a custom file is picked.
+private struct SoundPickerRow: View {
+    let label: String
+    let icon: String
+    let currentPath: String?
+    /// Logical sound name passed to SoundPlayer.preview (matches the bundle resource name).
+    let previewName: String
+    let onPick: (String) -> Void
+    let onReset: () -> Void
+
+    private var displayName: String {
+        if let path = currentPath, !path.isEmpty {
+            return (path as NSString).lastPathComponent
+        }
+        return "Default (bundled)"
+    }
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: icon)
+                .foregroundStyle(.tint)
+                .frame(width: 18)
+
+            VStack(alignment: .leading, spacing: 2) {
+                Text(label)
+                    .font(.callout)
+                Text(displayName)
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+                    .lineLimit(1)
+                    .truncationMode(.middle)
+            }
+            Spacer()
+
+            Button {
+                SoundPlayer.shared.preview(previewName)
+            } label: {
+                Image(systemName: "play.fill")
+            }
+            .buttonStyle(.borderless)
+            .help("Preview")
+
+            Button("Choose\u{2026}") { pickFile() }
+                .buttonStyle(.bordered)
+                .controlSize(.small)
+
+            if currentPath != nil {
+                Button("Reset") { onReset() }
+                    .buttonStyle(.borderless)
+                    .controlSize(.small)
+            }
+        }
+        .padding(.leading, 22)
+    }
+
+    private func pickFile() {
+        let panel = NSOpenPanel()
+        panel.title = "Choose a sound file for \(label.lowercased())"
+        panel.allowsMultipleSelection = false
+        panel.canChooseDirectories = false
+        panel.canChooseFiles = true
+        panel.allowedContentTypes = [.audio, .mp3, .wav, .aiff, .mpeg4Audio]
+        panel.level = .floating
+
+        if panel.runModal() == .OK, let url = panel.url {
+            onPick(url.path)
+        }
     }
 }
 
