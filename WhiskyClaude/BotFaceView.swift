@@ -1,8 +1,8 @@
 import SwiftUI
 
 struct BotFaceView: View {
-    // Drives sprite + tint from the global notch state machine.
     private var displayState: NotchDisplayState { .current }
+    @State private var jumpY: CGFloat = 0
 
     var body: some View {
         Image(systemName: symbolName)
@@ -11,7 +11,22 @@ struct BotFaceView: View {
             .foregroundStyle(tint)
             .symbolRenderingMode(.hierarchical)
             .clipped()
+            // SwiftUI y grows DOWNWARD. We want a positive jumpY to move the
+            // mascot UP, so the offset is negative.
+            .offset(y: -jumpY)
             .animation(.spring(duration: 0.3), value: displayState)
+            .onAppear {
+                MascotAnimator.shared.onTick = { y in
+                    DispatchQueue.main.async { jumpY = y }
+                }
+            }
+            .onChange(of: displayState) { _, new in
+                switch new {
+                case .waitingForInput:  MascotAnimator.shared.jump()
+                case .taskCompleted:    MascotAnimator.shared.bounce()
+                default: break
+                }
+            }
     }
 
     private var symbolName: String {
