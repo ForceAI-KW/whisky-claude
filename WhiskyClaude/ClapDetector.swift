@@ -2,43 +2,59 @@ import AVFoundation
 import Foundation
 import SoundAnalysis
 
-/// Detects double-clap audio via Apple's on-device SoundAnalysis classifier
-/// (`SNClassifierIdentifier.version1`). Hooks into SharedMicCapture so it
-/// co-exists with the keyword recognizer.
+/// Detects a SLAP on the Mac — a single sharp percussive impact. Originally
+/// this class did double-clap detection, but Ahmad's environment + the
+/// 500ms-window SoundAnalysis classifier produced unreliable matches.
+/// Slap is more reliable because:
+///   - The classifier has solid percussion labels (knock, thump, drum,
+///     "tapping a hard surface", etc.) trained on percussive hits
+///   - Single-event detection — no timing-gate logic between two events
+///   - Slapping the Mac is a natural physical gesture for "hey, do something"
 ///
-/// Key tuning decisions vs. v2.0:
-/// - overlapFactor = 0.5 so the classifier fires every ~500ms (was 0.0 = 1/s)
-/// - Gap window widened to 0.30-1.50s to match the new 500ms firing cadence
-/// - Threshold floor lowered: sensitivity 0..1 → 0.35..0.80 (was 0.5..0.9)
-/// - NSLog of every clap-identifier result for threshold tuning
+/// Despite the class still being named ClapDetector + onDoubleClap (kept for
+/// call-site stability), behavior is now single-impact slap detection.
 final class ClapDetector: NSObject {
     static let shared = ClapDetector()
 
-    /// Fired on the main queue when a double-clap is detected.
+    /// Fired on the main queue when a slap impact is detected.
+    /// (Kept the property name for back-compat with AppDelegate's wiring.)
     var onDoubleClap: (() -> Void)?
 
     private var analyzer: SNAudioStreamAnalyzer?
     private var request: SNClassifySoundRequest?
-    private let analysisQueue = DispatchQueue(label: "com.ahmadsharaf.WhiskyClaude.clapAnalysis")
+    private let analysisQueue = DispatchQueue(label: "com.ahmadsharaf.WhiskyClaude.slapAnalysis")
 
     private var isRunning = false
-    private var lastClapAt: CFTimeInterval = 0
+    private var lastFireAt: CFTimeInterval = 0
 
-    /// SoundAnalysis fires classifications every ~500ms (overlapFactor 0.5)
-    /// from a 1-second sliding window. A real double-clap produces 2 consecutive
-    /// high-confidence results separated by roughly 0.5s. Allow 0.3-1.5s gap.
-    private let minGap: CFTimeInterval = 0.30
-    private let maxGap: CFTimeInterval = 1.50
+    /// Cooldown after a fire — don't trigger again within this window so a
+    /// natural slap (which lasts a few hundred ms in the classifier's eyes)
+    /// only counts as one event.
+    private let cooldown: CFTimeInterval = 1.5
 
     /// Sensitivity 0..1 → confidence threshold 0.35 (lenient) ... 0.80 (strict).
     private var confidenceThreshold: Double = 0.55
 
-    private static let clapIdentifiers: Set<String> = ["clapping", "applause"]
-    private static let consumerId = "clap-detector"
+    /// SoundAnalysis classifier labels that count as a "slap" — any sharp
+    /// percussive impact. Multiple labels because Apple's classifier emits
+    /// slightly different ones depending on the surface material + intensity.
+    private static let slapIdentifiers: Set<String> = [
+        "slap, smack",
+        "smack, smacking lips",
+        "knock",
+        "thump, thud",
+        "drum",
+        "tap",
+        "tapping_(hand)",
+        "hands",
+        "clapping",                  // a hard one-hand clap can register here too
+        "finger_snapping",
+    ]
+    private static let consumerId = "slap-detector"
 
     private override init() { super.init() }
 
-    /// Maps 0..1 user-facing sensitivity to the Apple confidence threshold.
+    /// Maps 0..1 user-facing sensitivity to the confidence threshold.
     func setSensitivity(_ s: Double) {
         let clamped = max(0, min(1, s))
         confidenceThreshold = 0.35 + 0.45 * clamped
@@ -48,14 +64,14 @@ final class ClapDetector: NSObject {
         guard !isRunning else { return }
         guard let format = SharedMicCapture.shared.inputFormat,
               format.sampleRate > 0, format.channelCount > 0 else {
-            NSLog("[WhiskyClaude] ClapDetector: input format unusable")
+            NSLog("[WhiskyClaude] SlapDetector: input format unusable")
             return
         }
 
         let streamAnalyzer = SNAudioStreamAnalyzer(format: format)
         do {
             let req = try SNClassifySoundRequest(classifierIdentifier: .version1)
-            req.overlapFactor = 0.5   // every 500ms, see last 1s of audio
+            req.overlapFactor = 0.5
             try streamAnalyzer.add(req, withObserver: self)
             self.analyzer = streamAnalyzer
             self.request = req
@@ -70,14 +86,14 @@ final class ClapDetector: NSObject {
             }
         }
         if !ok {
-            NSLog("[WhiskyClaude] ClapDetector: failed to register mic consumer")
+            NSLog("[WhiskyClaude] SlapDetector: failed to register mic consumer")
             analyzer?.removeAllRequests()
             analyzer = nil
             request = nil
             return
         }
         isRunning = true
-        NSLog("[WhiskyClaude] ClapDetector started (threshold=\(confidenceThreshold))")
+        NSLog("[WhiskyClaude] SlapDetector started (threshold=\(confidenceThreshold))")
     }
 
     func stop() {
@@ -87,20 +103,16 @@ final class ClapDetector: NSObject {
         analyzer = nil
         request = nil
         isRunning = false
-        lastClapAt = 0
-        NSLog("[WhiskyClaude] ClapDetector stopped")
+        lastFireAt = 0
+        NSLog("[WhiskyClaude] SlapDetector stopped")
     }
 
-    private func handleClapDetected() {
+    private func handleSlapDetected() {
         let now = CACurrentMediaTime()
-        let dt = now - lastClapAt
-        if dt > minGap && dt < maxGap {
-            DispatchQueue.main.async { [weak self] in
-                self?.onDoubleClap?()
-            }
-            lastClapAt = 0   // reset so a third clap doesn't immediately re-trigger
-        } else {
-            lastClapAt = now
+        guard now - lastFireAt > cooldown else { return }
+        lastFireAt = now
+        DispatchQueue.main.async { [weak self] in
+            self?.onDoubleClap?()
         }
     }
 }
@@ -109,19 +121,21 @@ extension ClapDetector: SNResultsObserving {
     func request(_ request: SNRequest, didProduce result: SNResult) {
         guard let classification = result as? SNClassificationResult else { return }
 
-        // Log everything matching a clap identifier (helps tune threshold).
-        if let any = classification.classifications.first(where: { Self.clapIdentifiers.contains($0.identifier) }) {
-            NSLog("[WhiskyClaude] clap-detect: \(any.identifier) conf=\(String(format: "%.2f", any.confidence)) threshold=\(String(format: "%.2f", confidenceThreshold))")
+        // Find the best slap-related match above threshold.
+        // First log any high-confidence percussive hit for tuning visibility.
+        if let any = classification.classifications.first(where: {
+            Self.slapIdentifiers.contains($0.identifier) && $0.confidence > 0.25
+        }) {
+            NSLog("[WhiskyClaude] slap-detect: \(any.identifier) conf=\(String(format: "%.2f", any.confidence)) threshold=\(String(format: "%.2f", confidenceThreshold))")
         }
 
-        // Find the best matching clap-related identifier above the threshold.
         let hit = classification.classifications.first { c in
-            Self.clapIdentifiers.contains(c.identifier) && c.confidence >= confidenceThreshold
+            Self.slapIdentifiers.contains(c.identifier) && c.confidence >= confidenceThreshold
         }
         guard hit != nil else { return }
 
         DispatchQueue.main.async { [weak self] in
-            self?.handleClapDetected()
+            self?.handleSlapDetected()
         }
     }
 
@@ -129,7 +143,5 @@ extension ClapDetector: SNResultsObserving {
         NSLog("[WhiskyClaude] SoundAnalysis request failed: \(error)")
     }
 
-    func requestDidComplete(_ request: SNRequest) {
-        // Stream analysis doesn't normally complete; called on engine teardown.
-    }
+    func requestDidComplete(_ request: SNRequest) {}
 }

@@ -83,14 +83,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     private func buildMenu() -> NSMenu {
         let menu = NSMenu()
-        menu.addItem(withTitle: "Open Claude in Terminal", action: #selector(openClaudeInTerminalAction), keyEquivalent: "")
+
+        let openItem = NSMenuItem(title: "Open Claude in Terminal", action: #selector(openClaudeInTerminalAction), keyEquivalent: "")
+        openItem.target = self
+        menu.addItem(openItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Settings\u{2026}", action: #selector(showSettings), keyEquivalent: ",")
+
+        let settingsItem = NSMenuItem(title: "Settings\u{2026}", action: #selector(showSettings), keyEquivalent: ",")
+        settingsItem.target = self
+        menu.addItem(settingsItem)
+
         menu.addItem(NSMenuItem.separator())
-        menu.addItem(withTitle: "Quit Whisky Claude", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
-        for item in menu.items {
-            item.target = self
-        }
+
+        // Quit must target NSApp (not self) so #selector resolves to
+        // NSApplication.terminate(_:). Setting `target = self` on the loop
+        // below broke this — AppDelegate has no terminate(_:) method, so
+        // the action silently failed and clicking 'Quit' did nothing.
+        let quitItem = NSMenuItem(title: "Quit Whisky Claude", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        quitItem.target = NSApp
+        menu.addItem(quitItem)
+
         return menu
     }
 

@@ -75,15 +75,15 @@ struct VoiceTab: View {
             Section {
                 Toggle(isOn: $settings.clapTriggerEnabled) {
                     HStack(spacing: 6) {
-                        Image(systemName: "hands.clap")
+                        Image(systemName: "hand.tap.fill")
                             .foregroundStyle(.tint)
-                        Text("Double-clap")
+                        Text("Slap the Mac")
                             .font(.body.weight(.medium))
                         if settings.clapTriggerEnabled {
                             ListeningPill()
                         }
                     }
-                    Text("Clap twice within ~1 second to open Claude in Terminal. Uses Apple's on-device sound classifier.")
+                    Text("Give your Mac a single firm slap (on the lid, desk, or palm-rest) to open Claude in Terminal. Uses Apple's on-device sound classifier.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
                 }

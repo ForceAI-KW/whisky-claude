@@ -22,7 +22,15 @@ final class KeywordRecognizer: NSObject {
     private var isRunning = false
     private var lastFireAt: CFTimeInterval = 0
     private static let consumerId = "keyword-recognizer"
-    private static let wakePhrases: Set<String> = ["hey claude", "hey whisky"]
+    /// Apple's recognizer transcribes "whisky" several different ways
+    /// depending on accent + audio quality (whiskey, whisky, wiski, risky,
+    /// etc.) so we accept every common variant. "Claude" is mostly stable
+    /// but is sometimes misheard as "cloud" or "clod" — include those too.
+    private static let wakePhrases: Set<String> = [
+        "hey claude", "hey cloud", "hey clod",
+        "hey whisky", "hey whiskey", "hey wiski", "hey wiskey",
+        "hey risky", "hi claude", "hi whisky", "hi whiskey",
+    ]
 
     /// Ignore subsequent matches within this many seconds after a fire — gives
     /// the partial-transcript window time to clear after we restart the task.
@@ -103,6 +111,10 @@ final class KeywordRecognizer: NSObject {
             guard let self else { return }
             if let result {
                 let transcript = result.bestTranscription.formattedString.lowercased()
+                // Log every partial so we can see what the recognizer thinks
+                // it's hearing. Filter via:
+                //   log stream --predicate 'process == "WhiskyClaude"' --info | grep partial
+                NSLog("[WhiskyClaude] speech partial: \"\(transcript)\"")
                 self.checkForWakePhrase(transcript)
             }
             // SFSpeechRecognizer terminates the task on error (e.g. timeout
