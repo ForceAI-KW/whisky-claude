@@ -9,7 +9,6 @@ struct SessionTabBar: View {
                 SessionTab(
                     session: session,
                     isActive: session.id == sessionStore.activeSessionId,
-                    terminalActive: session.hasStarted && sessionStore.activeXcodeProjects.contains(session.projectName),
                     terminalStatus: session.terminalStatus,
                     foregroundOpacity: sessionStore.isWindowFocused ? 1.0 : 0.6,
                     onSelect: { sessionStore.selectSession(session.id) },
@@ -27,7 +26,6 @@ struct SessionTabBar: View {
 struct SessionTab: View {
     let session: TerminalSession
     let isActive: Bool
-    let terminalActive: Bool
     var terminalStatus: TerminalStatus = .idle
     var foregroundOpacity: Double = 1.0
     let onSelect: () -> Void

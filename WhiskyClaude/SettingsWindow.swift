@@ -65,12 +65,6 @@ struct IntegrationsTab: View {
 
     var body: some View {
         Form {
-            Toggle(isOn: $settings.xcodeIntegrationEnabled) {
-                Text("Xcode")
-                Text("Detect Xcode projects automatically")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
             Toggle(isOn: $settings.claudeIntegrationEnabled) {
                 Text("Claude")
                 Text("Shows real-time status updates")

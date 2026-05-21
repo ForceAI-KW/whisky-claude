@@ -22,8 +22,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             setupNotchWindow()
         }
         setupHotkey()
-        // Detect in background so launch isn't blocked
-        sessionStore.detectAllXcodeProjectsAsync()
         EventWatcher.shared.start()
 
         // Wire double-clap → open Notchy panel + new Claude session.
@@ -104,7 +102,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showPanelBelowNotch()
         panelOpenedViaHover = true
         startHoverTracking()
-        sessionStore.detectAndSwitchAsync()
     }
 
     private func showPanelBelowNotch() {
@@ -189,11 +186,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
             stopHoverTracking()
         } else {
             panelOpenedViaHover = false
-            // Show panel immediately
             showPanelBelowStatusItem()
-
-            // Then detect projects in background
-            sessionStore.detectAndSwitchAsync()
         }
     }
 
