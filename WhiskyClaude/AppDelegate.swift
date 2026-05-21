@@ -130,10 +130,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         lastOpenedAt = now
 
         let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
+        // If Terminal already has at least one window open, create a NEW TAB
+        // inside the front window via Cmd+T then run `claude` in it. Otherwise
+        // (no windows) just do a plain `do script`, which opens a fresh window.
+        //
+        // Terminal.app's AppleScript dictionary has no first-class "new tab in
+        // window" command — the standard workaround is to keystroke Cmd+T via
+        // System Events, then aim `do script` at the (now-current) front window.
+        // This requires the System Events automation permission. We already need
+        // it for the Login Item registration in install.sh, so users have
+        // typically granted it. If they haven't, the script still falls through
+        // to the no-windows branch (a new window) rather than failing silently.
         let script = """
         tell application "Terminal"
             activate
-            do script "cd '\(home)' && claude"
+            if (count of windows) is 0 then
+                do script "cd '\(home)' && claude"
+            else
+                tell application "System Events"
+                    tell process "Terminal"
+                        keystroke "t" using {command down}
+                    end tell
+                end tell
+                delay 0.25
+                do script "cd '\(home)' && claude" in window 1
+            end if
         end tell
         """
         var error: NSDictionary?
