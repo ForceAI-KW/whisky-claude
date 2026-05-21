@@ -4,11 +4,12 @@ import Speech
 
 /// On-device speech recognition for wake phrases ("hey claude" / "hey whisky").
 /// Uses `SFSpeechRecognizer` with `requiresOnDeviceRecognition = true` so audio
-/// never leaves the Mac. Tap is shared via SharedMicCapture so it co-exists
-/// with the clap detector on the same mic input.
+/// never leaves the Mac. Audio capture is shared via SharedMicCapture so this
+/// co-exists with the clap detector on the same mic tap.
 ///
-/// Recognition is restarted when the task completes or errors to keep listening
-/// continuously, avoiding SFSpeechRecognitionRequest buffer accumulation.
+/// After a wake-phrase fires, the recognition task is restarted (cancel + new
+/// request + new task) while LEAVING the mic capture untouched — that keeps
+/// the AVAudioEngine running steadily across many wake-word triggers.
 final class KeywordRecognizer: NSObject {
     static let shared = KeywordRecognizer()
 
@@ -22,8 +23,9 @@ final class KeywordRecognizer: NSObject {
     private var lastFireAt: CFTimeInterval = 0
     private static let consumerId = "keyword-recognizer"
     private static let wakePhrases: Set<String> = ["hey claude", "hey whisky"]
-    /// Re-arm cooldown — after a wake-word fire, ignore subsequent detections
-    /// for this long to avoid the partial-transcript echo.
+
+    /// Ignore subsequent matches within this many seconds after a fire — gives
+    /// the partial-transcript window time to clear after we restart the task.
     private static let cooldown: CFTimeInterval = 3.0
 
     private override init() { super.init() }
@@ -40,23 +42,60 @@ final class KeywordRecognizer: NSObject {
                 guard let self else { return }
                 switch status {
                 case .authorized:
-                    self.startListening()
+                    self.beginListening()
                 default:
-                    NSLog("[WhiskyClaude] KeywordRecognizer: speech permission \(status.rawValue)")
+                    NSLog("[WhiskyClaude] KeywordRecognizer: speech auth status=\(status.rawValue)")
                 }
             }
         }
     }
 
-    private func startListening() {
-        guard let recognizer else { return }
+    func stop() {
+        guard isRunning else { return }
+        SharedMicCapture.shared.unregister(id: Self.consumerId)
+        teardownTask()
+        isRunning = false
+        lastFireAt = 0
+        NSLog("[WhiskyClaude] KeywordRecognizer stopped")
+    }
 
+    /// First-time start: install the audio consumer + spin up the first task.
+    private func beginListening() {
+        spinUpNewTask()
+
+        let ok = SharedMicCapture.shared.register(id: Self.consumerId) { [weak self] buffer, _ in
+            // Closure reads `self?.request` each call — if restartTask() swapped
+            // it underneath, the next buffer flows into the new request.
+            self?.request?.append(buffer)
+        }
+        if !ok {
+            NSLog("[WhiskyClaude] KeywordRecognizer: SharedMicCapture register failed")
+            teardownTask()
+            return
+        }
+        isRunning = true
+        NSLog("[WhiskyClaude] KeywordRecognizer started")
+    }
+
+    /// Swap to a fresh request + recognition task. Mic stays registered.
+    private func restartTask() {
+        teardownTask()
+        spinUpNewTask()
+    }
+
+    private func teardownTask() {
+        request?.endAudio()
+        task?.cancel()
+        request = nil
+        task = nil
+    }
+
+    private func spinUpNewTask() {
+        guard let recognizer else { return }
         let req = SFSpeechAudioBufferRecognitionRequest()
         req.shouldReportPartialResults = true
-        if #available(macOS 13.0, *), recognizer.supportsOnDeviceRecognition {
+        if recognizer.supportsOnDeviceRecognition {
             req.requiresOnDeviceRecognition = true
-        } else {
-            NSLog("[WhiskyClaude] KeywordRecognizer: on-device recognition not available, using server (audio leaves Mac)")
         }
         self.request = req
 
@@ -66,46 +105,16 @@ final class KeywordRecognizer: NSObject {
                 let transcript = result.bestTranscription.formattedString.lowercased()
                 self.checkForWakePhrase(transcript)
             }
+            // SFSpeechRecognizer terminates the task on error (e.g. timeout
+            // after ~1min of silence) or when the request hits isFinal=true.
+            // Always spin a fresh one so we keep listening indefinitely.
             if error != nil || result?.isFinal == true {
-                // Restart so we keep listening
-                DispatchQueue.main.async { self.restart() }
+                DispatchQueue.main.async { [weak self] in
+                    guard let self, self.isRunning else { return }
+                    self.restartTask()
+                }
             }
         }
-
-        let ok = SharedMicCapture.shared.register(id: Self.consumerId) { [weak self] buffer, _ in
-            self?.request?.append(buffer)
-        }
-        if !ok {
-            NSLog("[WhiskyClaude] KeywordRecognizer: failed to register mic consumer")
-            task?.cancel()
-            task = nil
-            request = nil
-            return
-        }
-        isRunning = true
-        NSLog("[WhiskyClaude] KeywordRecognizer started")
-    }
-
-    func stop() {
-        guard isRunning else { return }
-        SharedMicCapture.shared.unregister(id: Self.consumerId)
-        request?.endAudio()
-        task?.cancel()
-        request = nil
-        task = nil
-        isRunning = false
-        lastFireAt = 0
-        NSLog("[WhiskyClaude] KeywordRecognizer stopped")
-    }
-
-    private func restart() {
-        guard isRunning else { return }
-        SharedMicCapture.shared.unregister(id: Self.consumerId)
-        request?.endAudio()
-        task?.cancel()
-        request = nil
-        task = nil
-        startListening()
     }
 
     private func checkForWakePhrase(_ transcript: String) {
@@ -113,14 +122,11 @@ final class KeywordRecognizer: NSObject {
         guard now - lastFireAt > Self.cooldown else { return }
         for phrase in Self.wakePhrases {
             if transcript.contains(phrase) {
-                NSLog("[WhiskyClaude] wake word: \"\(phrase)\" in transcript")
+                NSLog("[WhiskyClaude] wake word: \"\(phrase)\" matched in transcript")
                 lastFireAt = now
-                DispatchQueue.main.async { [weak self] in
-                    self?.onWakeWord?()
-                }
-                // Restart so the same phrase doesn't keep matching in the
-                // accumulating partial transcript.
-                DispatchQueue.main.async { [weak self] in self?.restart() }
+                DispatchQueue.main.async { [weak self] in self?.onWakeWord?() }
+                // Swap to a fresh transcript so the same phrase doesn't keep matching
+                DispatchQueue.main.async { [weak self] in self?.restartTask() }
                 return
             }
         }

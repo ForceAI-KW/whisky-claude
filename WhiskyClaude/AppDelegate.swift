@@ -4,6 +4,7 @@ import Foundation
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menuBarIcon: MenuBarIcon!
+    private var mascotWindow: MascotWindow!
     private var statusObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -13,6 +14,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
         menuBarIcon = MenuBarIcon(statusItem: statusItem)
         statusItem.menu = buildMenu()
+
+        // 1b. Floating mascot window (shows on attention/done, hidden at idle)
+        mascotWindow = MascotWindow()
 
         // 2. External Claude Code hook event watcher
         EventWatcher.shared.start()
@@ -31,6 +35,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .waitingForInput:  SoundPlayer.shared.play("waitingForInput")
             case .taskCompleted:    SoundPlayer.shared.play("taskCompleted")
             case .working, .idle:   break
+            }
+            // Floating mascot: pops in and bounces on attention/done events.
+            switch kind {
+            case .waitingForInput:
+                self?.mascotWindow.show(kind: .attention)
+            case .taskCompleted:
+                self?.mascotWindow.show(kind: .done)
+            case .working, .idle:
+                break
             }
         }
 
