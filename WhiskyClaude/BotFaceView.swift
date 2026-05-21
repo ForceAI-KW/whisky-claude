@@ -14,11 +14,14 @@ struct BotFaceView: View {
             // SwiftUI y grows DOWNWARD. We want a positive jumpY to move the
             // mascot UP, so the offset is negative.
             .offset(y: -jumpY)
+            // Suppress implicit animation on per-frame jumpY changes so the
+            // spring below only animates state transitions, not every tick.
+            .animation(nil, value: jumpY)
             .animation(.spring(duration: 0.3), value: displayState)
             .onAppear {
-                MascotAnimator.shared.onTick = { y in
-                    DispatchQueue.main.async { jumpY = y }
-                }
+                // onTick fires on the main queue (MascotAnimator dispatches
+                // every callback there) — no inner re-dispatch needed.
+                MascotAnimator.shared.onTick = { y in jumpY = y }
             }
             .onChange(of: displayState) { _, new in
                 switch new {
