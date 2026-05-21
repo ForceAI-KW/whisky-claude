@@ -68,10 +68,11 @@ final class MascotWindow: NSPanel {
         }
     }
 
-    /// Position the window so the mascot's vertical center lines up with the
-    /// notch's bottom edge (= menu bar bottom on a notch Mac), centered
-    /// horizontally on the screen. The window's full width (mascot + roam
-    /// area) stays strictly inside the notch's horizontal extent.
+    /// Position the window so the mascot's TOP edge sits right at the notch's
+    /// bottom edge (= menu bar bottom on a notch Mac). The full mascot is
+    /// visible in the desktop area, hugging the underside of the notch.
+    /// Horizontally constrained inside the notch's outline so menu items
+    /// left/right of the notch stay clickable.
     private func positionAtNotch() {
         guard let screen = NSScreen.builtIn else { return }
         let frame = screen.frame
@@ -79,7 +80,12 @@ final class MascotWindow: NSPanel {
         let w = Self.mascotSize + Self.roamHalfWidth * 2
         let h = Self.mascotSize + Self.verticalPadding * 2
         let notchBottom = visible.maxY
-        let y = notchBottom - h / 2
+        // The mascot is vertically centered inside the window. To put the
+        // mascot's TOP at notchBottom, the mascot center must be at
+        // notchBottom - mascotSize/2, which means the window's center is the
+        // same, and the window's y origin is windowCenter - h/2.
+        let mascotCenterY = notchBottom - Self.mascotSize / 2
+        let y = mascotCenterY - h / 2
         let x = frame.midX - w / 2
         setFrame(NSRect(x: x, y: y, width: w, height: h), display: true)
     }
@@ -205,18 +211,35 @@ struct MascotContent: View {
             baseX = 0; walking = false; walkDir = 0
         }
 
-        // Idle: gentle ±1.5pt bob, ±1.0° wobble
-        let idleY = sin(t * 2 * .pi / 2.4) * 1.5
+        // Idle: gentle downward bob 0..+2pt + ±1° wobble. Downward-only so
+        // the mascot's top never goes above its resting position (which is
+        // at the notch bottom edge — anywhere above would be clipped by the
+        // notch's no-display zone).
+        let idleY = (1.0 + sin(t * 2 * .pi / 2.4)) * 1.0   // 0..+2
         let idleRot = sin(t * 2 * .pi / 3.8) * 1.0
 
-        // Walking gait: a faster, more pronounced bob (±3pt) + lean ±5°
-        // toward the walking direction
-        let gaitY = walking ? sin(t * 2 * .pi / 0.55) * 3.0 : 0
+        // Walking gait: a downward bob 0..+3pt with footstep cadence + lean
+        // ±5° toward the walking direction.
+        let gaitY: CGFloat = walking ? (1.0 + sin(t * 2 * .pi / 0.55)) * 1.5 : 0
         let gaitRot = walking ? Double(walkDir) * 5.0 : 0
+
+        // "Peek up" gesture — every ~7 seconds, the mascot briefly hops UP
+        // into the notch outline (top half clipped) for ~0.5s, then drops
+        // back down. Looks like it's playing peek-a-boo with the notch.
+        let peekCycle = 7.0
+        let peekPos = t.truncatingRemainder(dividingBy: peekCycle)
+        let peekY: CGFloat
+        if peekPos < 0.5 {
+            // ease in/out: half-up sin pulse, peak halfway through
+            let phase = peekPos / 0.5
+            peekY = -sin(phase * .pi) * 10.0   // negative = upward
+        } else {
+            peekY = 0
+        }
 
         return (
             x: baseX,
-            y: idleY + gaitY,
+            y: idleY + gaitY + peekY,
             rotation: idleRot + gaitRot
         )
     }
