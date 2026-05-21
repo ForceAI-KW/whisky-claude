@@ -1,47 +1,60 @@
 import AppKit
 import SwiftUI
 
-/// Always-visible floating panel hosting the Claude character. Choreography:
-///   - Mascot sits on the LEFT side of the notch, dancing in place for ~1min
-///   - Walks down + across to the RIGHT side
-///   - Sits there dancing for ~1min
-///   - Walks back to the LEFT
-///   - Repeat
+/// Always-visible floating panel hosting the Claude character. The mascot is
+/// SEATED beside the notch (left edge or right edge), grounded — its top
+/// edge is anchored to the menu bar's bottom so it looks like it's sitting
+/// on a ledge rather than floating in mid-air.
 ///
-/// The window spans wider than the notch so the mascot can roam to the left
-/// and right edges. Vertically, the mascot stays at or below the notch's
-/// bottom edge so it never covers menu items in any horizontal position.
+/// Choreography (~136s loop):
+///   0   - 60s  : seated at LEFT side of notch, dancing (shimmy)
+///   60  - 68s  : walk LEFT → RIGHT with real footstep gait + duck under notch
+///   68  - 128s : seated at RIGHT side of notch, dancing (shimmy)
+///   128 - 136s : walk RIGHT → LEFT
+///   repeat
 ///
-/// On attention/done events, an additional peek-out + rotation wobble is
-/// layered on top of the ambient choreography.
+/// Dance is HORIZONTAL shimmy + rotation wobble — no vertical bouncing (per
+/// user request). Walking has footstep impact dips. Resting between beats has
+/// a barely-perceptible breathing scale pulse so the mascot doesn't look frozen.
+///
+/// Positions are derived from the live notch geometry via
+/// `NSScreen.builtIn.auxiliaryTopLeftArea/auxiliaryTopRightArea` — never guessed.
 final class MascotWindow: NSPanel {
     private let hostView: NSHostingView<MascotContent>
     private let state = MascotAnimationState()
     private var screenObserver: Any?
 
     /// Visible logical size of the mascot.
-    static let mascotSize: CGFloat = 36
+    static let mascotSize: CGFloat = 32
 
-    /// How far left or right of center the mascot can roam. Big enough to
-    /// clearly position it BESIDE the notch (notch is ~180pt wide, so a
-    /// ~140pt offset places the mascot just past the notch's left/right edge).
-    /// Mascot is always vertically BELOW the menu bar so the wider range
-    /// doesn't cover menu items.
-    static let roamHalfWidth: CGFloat = 140
+    /// Gap between the notch's left/right edge and the mascot when seated.
+    /// Small but non-zero so the mascot doesn't look glued to the notch.
+    static let seatGap: CGFloat = 6
 
-    /// Vertical padding above + below the mascot inside the window.
-    private static let verticalPadding: CGFloat = 30
+    /// Vertical padding inside the window for the dancing shimmy / walking
+    /// gait to render without clipping. Kept tight.
+    private static let verticalPadding: CGFloat = 20
+
+    /// Computed at init from live screen measurements — distance from screen
+    /// center to each "seat" position. Bigger than half the notch width.
+    private var seatHalfWidth: CGFloat = 140
 
     init() {
         hostView = NSHostingView(rootView: MascotContent(state: state))
-        let w = Self.mascotSize + Self.roamHalfWidth * 2
+
+        // Compute the window width to accommodate the measured seat positions.
+        let initialSeatHalf = Self.measureSeatHalfWidth()
+        let w = Self.mascotSize + initialSeatHalf * 2 + 20   // 20pt slack for shimmy
         let h = Self.mascotSize + Self.verticalPadding * 2
+
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: w, height: h),
             styleMask: [.borderless, .nonactivatingPanel],
             backing: .buffered,
             defer: true
         )
+        self.seatHalfWidth = initialSeatHalf
+
         isFloatingPanel = true
         level = .statusBar
         backgroundColor = .clear
@@ -63,6 +76,10 @@ final class MascotWindow: NSPanel {
             cv.layer?.masksToBounds = false
         }
 
+        // Hand the live seat distance to the SwiftUI content so its motion
+        // ranges line up with the measured screen geometry.
+        state.seatHalfWidth = initialSeatHalf
+
         positionAtNotch()
         observeScreenChanges()
         applyVisibility(SettingsManager.shared.mascotVisible)
@@ -74,18 +91,42 @@ final class MascotWindow: NSPanel {
         }
     }
 
-    /// Position the window so the mascot's TOP edge sits right at the notch's
-    /// bottom edge (= menu bar bottom on a notch Mac), centered horizontally.
-    /// The window extends roamHalfWidth to each side from screen midX so the
-    /// mascot can roam between the notch's LEFT and RIGHT outside edges while
-    /// staying vertically below the menu bar (never covering menu items).
+    /// Measure how far from screen center each seat position should be.
+    /// Reads the live notch dimensions; falls back to a sensible default
+    /// for Macs without a notch.
+    private static func measureSeatHalfWidth() -> CGFloat {
+        guard let screen = NSScreen.builtIn,
+              let leftArea = screen.auxiliaryTopLeftArea,
+              let rightArea = screen.auxiliaryTopRightArea else {
+            return 110   // sensible default for older Macs
+        }
+        let notchLeftEdge = leftArea.maxX
+        let notchRightEdge = rightArea.minX
+        let screenMidX = screen.frame.midX
+        // Distance from screen midX to each notch edge.
+        let halfNotchWidth = (notchRightEdge - notchLeftEdge) / 2
+        // Seat positions: just past the notch edge + the mascot's own half-width + the gap.
+        return halfNotchWidth + mascotSize / 2 + seatGap
+    }
+
+    /// Position the window centered on screen midX with the mascot's top
+    /// edge anchored to the menu bar's bottom — gives a "sitting on a ledge"
+    /// look instead of floating in mid-air.
     private func positionAtNotch() {
         guard let screen = NSScreen.builtIn else { return }
         let frame = screen.frame
         let visible = screen.visibleFrame
-        let w = Self.mascotSize + Self.roamHalfWidth * 2
+
+        // Refresh the measured seat distance (screen reconfig may have changed it).
+        let seatHalf = Self.measureSeatHalfWidth()
+        self.seatHalfWidth = seatHalf
+        state.seatHalfWidth = seatHalf
+
+        let w = Self.mascotSize + seatHalf * 2 + 20
         let h = Self.mascotSize + Self.verticalPadding * 2
         let notchBottom = visible.maxY
+        // Mascot center y: mascotSize/2 below the menu bar bottom so the
+        // mascot's TOP touches the menu bar bottom exactly.
         let mascotCenterY = notchBottom - Self.mascotSize / 2
         let y = mascotCenterY - h / 2
         let x = frame.midX - w / 2
@@ -101,7 +142,6 @@ final class MascotWindow: NSPanel {
         }
     }
 
-    /// Toggle visibility based on the user setting.
     func applyVisibility(_ visible: Bool) {
         if visible {
             positionAtNotch()
@@ -111,7 +151,6 @@ final class MascotWindow: NSPanel {
         }
     }
 
-    /// Trigger an additional bounce on top of the ambient choreography.
     func triggerBounce(kind: MascotBounceKind) {
         state.trigger(kind: kind)
     }
@@ -125,10 +164,13 @@ enum MascotBounceKind {
     case done
 }
 
+/// State observed by the SwiftUI content. Carries the live seat-half-width
+/// so the SwiftUI motion math always matches the measured geometry.
 @Observable
 final class MascotAnimationState {
     var bounceTrigger: Int = 0
     var currentKind: MascotBounceKind = .attention
+    var seatHalfWidth: CGFloat = 140
 
     func trigger(kind: MascotBounceKind) {
         currentKind = kind
@@ -136,27 +178,20 @@ final class MascotAnimationState {
     }
 }
 
-/// SwiftUI view rendering the Claude character with the side-to-side
-/// choreography:
-///   - 60s dance at LEFT side of notch
-///   - 8s walk LEFT → RIGHT
-///   - 60s dance at RIGHT side of notch
-///   - 8s walk RIGHT → LEFT
-///   - Repeat
-///
-/// "Dancing" = bigger bob + rotation wobble + occasional little hops in place.
-/// "Walking" = horizontal travel with a footstep gait + lean toward direction.
-///
-/// Attention/done events layer a downward springy peek-out on top of either
-/// motion state.
+/// SwiftUI view rendering the Claude character with grounded, realistic
+/// motion. Three ambient states drive the loop: DANCING, WALKING, and brief
+/// SETTLE transitions. No vertical bouncing during dance (per spec — dance
+/// is horizontal shimmy + rotation + breathing scale). Footstep dips ground
+/// the walk. Tiny breathing scale at all times so the mascot is never frozen.
 struct MascotContent: View {
     @State var state: MascotAnimationState
 
+    /// Layered attention/done bounce offset + rotation. Set by `runBounce`.
     @State private var bounceOffset: CGFloat = 0
     @State private var bounceRotation: Double = 0
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
+        TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: false)) { timeline in
             let elapsed = timeline.date.timeIntervalSinceReferenceDate
             let pose = ambientPose(at: elapsed)
 
@@ -164,7 +199,10 @@ struct MascotContent: View {
                 .resizable()
                 .interpolation(.high)
                 .frame(width: MascotWindow.mascotSize, height: MascotWindow.mascotSize)
-                .shadow(color: .black.opacity(0.22), radius: 4, x: 0, y: 2)
+                .scaleEffect(pose.scale)
+                // Heavier shadow so the mascot reads as "sitting on" the menu
+                // bar's bottom edge instead of floating.
+                .shadow(color: .black.opacity(0.35), radius: 5, x: 0, y: 3)
                 .offset(x: pose.x, y: pose.y + bounceOffset)
                 .rotationEffect(.degrees(pose.rotation + bounceRotation))
         }
@@ -174,93 +212,118 @@ struct MascotContent: View {
         }
     }
 
-    /// Cycle constants (sum to cycleDuration).
-    /// User wanted "1 minute" dancing on each side — that's 60s each.
+    // MARK: - Choreography
+
+    /// User wanted "1 minute dancing on each side".
     private static let danceDuration: Double = 60.0
     private static let walkDuration: Double = 8.0
-    private static let cycleDuration: Double = (danceDuration + walkDuration) * 2.0  // 136s
+    private static let cycleDuration: Double = (danceDuration + walkDuration) * 2.0   // 136s
 
-    /// Compute the ambient pose at a given absolute time. Returns x/y offsets
-    /// and a rotation angle in degrees.
-    private func ambientPose(at t: TimeInterval) -> (x: CGFloat, y: CGFloat, rotation: Double) {
+    /// Compute the ambient pose at a given absolute time. Returns x/y/scale/rotation
+    /// in the window's local coordinate space.
+    private func ambientPose(at t: TimeInterval) -> (x: CGFloat, y: CGFloat, scale: CGFloat, rotation: Double) {
         let cycle = t.truncatingRemainder(dividingBy: Self.cycleDuration)
-        let roam = MascotWindow.roamHalfWidth
+        let seat = state.seatHalfWidth
 
-        // Segment boundaries
-        let s1 = Self.danceDuration                  // 60  — finish dancing LEFT
-        let s2 = s1 + Self.walkDuration              // 68  — finish walking LEFT -> RIGHT
-        let s3 = s2 + Self.danceDuration             // 128 — finish dancing RIGHT
-        // s4 = cycleDuration                        // 136 — finish walking RIGHT -> LEFT
+        let s1 = Self.danceDuration                  //  60  end dance LEFT
+        let s2 = s1 + Self.walkDuration              //  68  end walk LEFT -> RIGHT
+        let s3 = s2 + Self.danceDuration             // 128  end dance RIGHT
 
-        let baseX: CGFloat
-        let dancing: Bool
-        let walking: Bool
-        let walkDir: CGFloat   // -1 left, +1 right, 0 stationary
+        // Universal breathing scale — barely perceptible (1.0 .. 1.018) at
+        // a slow 3.5s cycle. Keeps the mascot alive even when "still".
+        let breathScale: CGFloat = 1.0 + (1.0 + CGFloat(sin(t * 2 * .pi / 3.5))) * 0.009
 
         if cycle < s1 {
-            // Dance at LEFT side of notch
-            baseX = -roam
-            dancing = true; walking = false; walkDir = 0
+            // DANCE LEFT
+            let danceX = sin(t * 2 * .pi * 3.5) * 3.0          // 3.5 Hz, ±3pt horizontal shimmy
+            let danceRot = sin(t * 2 * .pi * 2.0) * 9.0        // 2 Hz, ±9° rotation wobble
+            // Tiny secondary jitter in rotation to break the perfectly periodic feel
+            let microRot = sin(t * 2 * .pi * 7.3) * 2.0        // 7.3 Hz, ±2° flutter
+            // Scale "drop" on the beat — 1 Hz pulse: 1.0 .. 1.05
+            let beatScale: CGFloat = 1.0 + max(0, CGFloat(sin(t * 2 * .pi * 1.0))) * 0.05
+            return (
+                x: -seat + danceX,
+                y: 0,
+                scale: breathScale * beatScale,
+                rotation: danceRot + microRot
+            )
         } else if cycle < s2 {
-            // Walk LEFT -> RIGHT
-            let f = (cycle - s1) / Self.walkDuration
-            baseX = -roam + (2 * roam) * smoothstep(f)
-            dancing = false; walking = true; walkDir = +1
+            // WALK LEFT -> RIGHT
+            let f = (cycle - s1) / Self.walkDuration           // 0..1
+            let easedF = smoothstep(f)
+            let baseX = -seat + (2 * seat) * easedF
+
+            // Footstep: brief downward dip + slight bob per step (1.6 Hz = ~brisk pace)
+            let stepPhase = (t * 1.6).truncatingRemainder(dividingBy: 1.0)
+            // Impact bob: down 2pt at the first 35% of each step, then back
+            let footstep: CGFloat = stepPhase < 0.35
+                ? sin(stepPhase / 0.35 * .pi) * 2.0
+                : 0
+            // Lean forward in walking direction
+            let lean = 5.0   // +5° leaning right
+            // Mascot dips under the notch as it passes through the middle —
+            // brief vertical dip + scale-down so it looks like it's ducking.
+            let middleDist = abs(baseX) / seat   // 1 at edges, 0 at center
+            let duckScale: CGFloat = 1.0 - (1.0 - CGFloat(middleDist)) * 0.08
+            let duckY: CGFloat = (1.0 - CGFloat(middleDist)) * 1.5
+            return (
+                x: baseX,
+                y: footstep + duckY,
+                scale: breathScale * duckScale,
+                rotation: lean
+            )
         } else if cycle < s3 {
-            // Dance at RIGHT side of notch
-            baseX = roam
-            dancing = true; walking = false; walkDir = 0
+            // DANCE RIGHT — same as LEFT but mirrored
+            let danceX = sin(t * 2 * .pi * 3.5) * 3.0
+            let danceRot = sin(t * 2 * .pi * 2.0) * 9.0
+            let microRot = sin(t * 2 * .pi * 7.3) * 2.0
+            let beatScale: CGFloat = 1.0 + max(0, CGFloat(sin(t * 2 * .pi * 1.0))) * 0.05
+            return (
+                x: seat + danceX,
+                y: 0,
+                scale: breathScale * beatScale,
+                rotation: danceRot + microRot
+            )
         } else {
-            // Walk RIGHT -> LEFT
+            // WALK RIGHT -> LEFT
             let f = (cycle - s3) / Self.walkDuration
-            baseX = roam - (2 * roam) * smoothstep(f)
-            dancing = false; walking = true; walkDir = -1
+            let easedF = smoothstep(f)
+            let baseX = seat - (2 * seat) * easedF
+
+            let stepPhase = (t * 1.6).truncatingRemainder(dividingBy: 1.0)
+            let footstep: CGFloat = stepPhase < 0.35
+                ? sin(stepPhase / 0.35 * .pi) * 2.0
+                : 0
+            let lean = -5.0   // leaning left
+            let middleDist = abs(baseX) / seat
+            let duckScale: CGFloat = 1.0 - (1.0 - CGFloat(middleDist)) * 0.08
+            let duckY: CGFloat = (1.0 - CGFloat(middleDist)) * 1.5
+            return (
+                x: baseX,
+                y: footstep + duckY,
+                scale: breathScale * duckScale,
+                rotation: lean
+            )
         }
-
-        // Gentle base bob (always present, downward-only so the top edge
-        // never crosses into the clipped notch zone)
-        let baseBobY = (1.0 + sin(t * 2 * .pi / 2.4)) * 1.0   // 0..+2
-        let baseRot = sin(t * 2 * .pi / 3.8) * 1.0
-
-        // Dancing: bigger amplitude bob + rotation + an occasional hop in place
-        let danceBobY: CGFloat = dancing ? (1.0 + sin(t * 2 * .pi / 0.9)) * 2.5 : 0   // 0..+5
-        let danceRot: Double  = dancing ? sin(t * 2 * .pi / 1.3) * 7.0 : 0            // ±7°
-        // Occasional hop — every 5s, brief 0.4s downward hop
-        let hopY: CGFloat
-        if dancing {
-            let hopCycle = 5.0
-            let hopPos = t.truncatingRemainder(dividingBy: hopCycle)
-            hopY = hopPos < 0.4 ? sin((hopPos / 0.4) * .pi) * 6.0 : 0   // 0..+6 then 0
-        } else {
-            hopY = 0
-        }
-
-        // Walking gait: footstep cadence bob (0..+3) + lean toward direction
-        let gaitY: CGFloat = walking ? (1.0 + sin(t * 2 * .pi / 0.55)) * 1.5 : 0
-        let gaitRot = walking ? Double(walkDir) * 5.0 : 0
-
-        return (
-            x: baseX,
-            y: baseBobY + danceBobY + hopY + gaitY,
-            rotation: baseRot + danceRot + gaitRot
-        )
     }
 
-    /// Smooth ease in/out for the walk segments.
+    /// Cubic smoothstep ease in/out for walk transitions.
     private func smoothstep(_ x: Double) -> CGFloat {
         let clamped = max(0, min(1, x))
         return CGFloat(clamped * clamped * (3 - 2 * clamped))
     }
 
-    /// Peek-out bounce layered on top of the ambient choreography (attention/done).
+    /// Attention/done peek-out — bigger downward dip + rotation wobble layered
+    /// on top of the ambient choreography. Always goes DOWN (more visible),
+    /// never UP (would clip into the notch's no-display zone).
     private func runBounce(kind: MascotBounceKind) {
         bounceOffset = 0
         bounceRotation = 0
 
         let bounces: Int = (kind == .attention) ? 3 : 2
-        let peakHeight: CGFloat = (kind == .attention) ? 12 : 8
-        let perBounce: Double = (kind == .attention) ? 0.34 : 0.40
-        let wobbleDeg: Double = (kind == .attention) ? 6 : 4
+        let peakHeight: CGFloat = (kind == .attention) ? 14 : 9
+        let perBounce: Double = (kind == .attention) ? 0.32 : 0.38
+        let wobbleDeg: Double = (kind == .attention) ? 8 : 5
 
         for i in 0..<bounces {
             let start = Double(i) * perBounce
@@ -284,6 +347,7 @@ struct MascotContent: View {
 // MARK: - NSScreen helper
 
 extension NSScreen {
+    /// Returns the built-in display (the one with the notch), or main as fallback.
     static var builtIn: NSScreen? {
         screens.first { screen in
             let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0
