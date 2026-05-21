@@ -18,20 +18,21 @@ if [ ! -f "$SETTINGS" ]; then
     exit 1
 fi
 
-# Backup before modifying.
+# Backup before modifying
 cp "$SETTINGS" "$SETTINGS.bak.$(date +%s)"
 
 tmp=$(mktemp)
 jq '
   .hooks = (
     (.hooks // {}) |
-    .Stop              = [{hooks: [{type: "command", command: "'"$HELPER"' done",       async: true}]}] |
-    .Notification      = [{hooks: [{type: "command", command: "'"$HELPER"' attention",  async: true}]}] |
-    .PreToolUse        = [{hooks: [{type: "command", command: "'"$HELPER"' working",    async: true}]}] |
-    .UserPromptSubmit  = [{hooks: [{type: "command", command: "'"$HELPER"' thinking",   async: true}]}]
+    .Stop              = [{hooks: [{type: "command", command: "'"$HELPER"' done"}]}] |
+    .Notification      = [{hooks: [{type: "command", command: "'"$HELPER"' attention"}]}] |
+    .PreToolUse        = [{hooks: [{type: "command", command: "'"$HELPER"' working"}]}] |
+    .UserPromptSubmit  = [{hooks: [{type: "command", command: "'"$HELPER"' thinking"}]}]
   )
 ' "$SETTINGS" > "$tmp"
 mv "$tmp" "$SETTINGS"
 
 echo "✓ Whisky Claude hooks installed in $SETTINGS"
 echo "  Backup: $SETTINGS.bak.*"
+echo "  Hook invocations log: ~/.claude/logs/wc-event.log"

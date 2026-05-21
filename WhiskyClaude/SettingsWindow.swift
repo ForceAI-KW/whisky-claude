@@ -65,36 +65,87 @@ struct VoiceTab: View {
 
     var body: some View {
         Form {
-            Toggle(isOn: $settings.clapTriggerEnabled) {
-                Text("Double-clap to open Claude in Terminal")
-                Text("Uses Apple's on-device sound classifier (SoundAnalysis framework). Audio is analyzed locally and never recorded, stored, or sent anywhere.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
-            if settings.clapTriggerEnabled {
-                HStack {
-                    Text("Sensitivity")
-                    Slider(value: $settings.clapSensitivity, in: 0...1) {
-                        EmptyView()
-                    } minimumValueLabel: {
-                        Text("Lenient").font(.caption)
-                    } maximumValueLabel: {
-                        Text("Strict").font(.caption)
+            Section {
+                Toggle(isOn: $settings.clapTriggerEnabled) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "hands.clap")
+                            .foregroundStyle(.tint)
+                        Text("Double-clap")
+                            .font(.body.weight(.medium))
+                        if settings.clapTriggerEnabled {
+                            ListeningPill()
+                        }
                     }
+                    Text("Clap twice within ~1 second to open Claude in Terminal. Uses Apple's on-device sound classifier.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                }
+                if settings.clapTriggerEnabled {
+                    HStack {
+                        Text("Sensitivity")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                        Slider(value: $settings.clapSensitivity, in: 0...1) {
+                            EmptyView()
+                        } minimumValueLabel: {
+                            Text("Lenient").font(.caption2).foregroundStyle(.secondary)
+                        } maximumValueLabel: {
+                            Text("Strict").font(.caption2).foregroundStyle(.secondary)
+                        }
+                    }
+                    .padding(.leading, 22)
+                }
+            } header: {
+                Text("Voice triggers")
+                    .font(.callout.bold())
+                    .padding(.top, 4)
+            } footer: {
+                Text("Audio is analyzed locally on your Mac. Nothing is recorded, stored, or sent anywhere. macOS will prompt you for microphone (and speech recognition) permission the first time you enable these.")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+                    .padding(.top, 6)
+            }
+
+            Section {
+                Toggle(isOn: $settings.wakeWordEnabled) {
+                    HStack(spacing: 6) {
+                        Image(systemName: "waveform")
+                            .foregroundStyle(.tint)
+                        Text("Wake word")
+                            .font(.body.weight(.medium))
+                        if settings.wakeWordEnabled {
+                            ListeningPill()
+                        }
+                    }
+                    Text("Say \"hey claude\" or \"hey whisky\" to open Claude in Terminal. Uses Apple's on-device Speech framework.")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
                 }
             }
-
-            Divider().padding(.vertical, 4)
-
-            Toggle(isOn: $settings.wakeWordEnabled) {
-                Text("Say \"hey claude\" or \"hey whisky\" to open Claude in Terminal")
-                Text("Uses Apple's on-device Speech framework. Audio is transcribed locally on your Mac.")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
-            }
         }
-        .padding(20)
+        .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+/// Small pill shown next to an active trigger label.
+private struct ListeningPill: View {
+    @State private var pulse = false
+    var body: some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(Color.green)
+                .frame(width: 6, height: 6)
+                .opacity(pulse ? 0.4 : 1.0)
+                .animation(.easeInOut(duration: 0.9).repeatForever(autoreverses: true), value: pulse)
+            Text("listening")
+                .font(.caption2)
+                .foregroundStyle(.green)
+        }
+        .padding(.horizontal, 6)
+        .padding(.vertical, 1)
+        .background(Color.green.opacity(0.10), in: Capsule())
+        .onAppear { pulse = true }
     }
 }
 
