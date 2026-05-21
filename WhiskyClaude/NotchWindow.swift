@@ -180,12 +180,11 @@ class NotchWindow: NSPanel {
         // Whisky Claude: never grow horizontally past the notch outline (avoids
         // covering menu bar items in apps with long menus).
         let targetWidth: CGFloat = notchWidth
-        let extraHeight: CGFloat = 22   // room for the mascot to hop down
         var targetFrame = NSRect(
             x: screenFrame.midX - targetWidth / 2,
-            y: screenFrame.maxY - notchHeight - extraHeight,
+            y: screenFrame.maxY - notchHeight - Self.expandedExtraHeight,
             width: targetWidth,
-            height: notchHeight + extraHeight
+            height: notchHeight + Self.expandedExtraHeight
         )
         if isHovered {
             targetFrame = applyHoverGrow(to: targetFrame)
@@ -372,6 +371,9 @@ class NotchWindow: NSPanel {
     // Whisky Claude: no horizontal grow on hover (keeps menu bar buttons accessible).
     private static let hoverGrowX: CGFloat = 0
     private static let hoverGrowY: CGFloat = 2
+    /// Whisky Claude: extra height the pill grows DOWNWARD when expanded.
+    /// Room for the mascot's jump animation (Task 4) without ever exceeding notchWidth.
+    private static let expandedExtraHeight: CGFloat = 22
 
     /// Applies hover grow offset to any frame.
     private func applyHoverGrow(to rect: NSRect) -> NSRect {
