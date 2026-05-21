@@ -46,6 +46,12 @@ final class EventWatcher {
 
     func start() {
         stop()
+        // Discard any leftover events from a previous run. These are stale —
+        // firing apply() on them would play sounds on app launch which the
+        // user doesn't want. We only want to react to events that arrive
+        // AFTER the watcher is live.
+        discardStaleFiles()
+
         fd = open(dir.path, O_EVTONLY)
         guard fd >= 0 else {
             NSLog("[WhiskyClaude] EventWatcher: open() failed: \(String(cString: strerror(errno)))")
@@ -61,9 +67,23 @@ final class EventWatcher {
         }
         source = src
         src.resume()
-        // Drain anything already queued before app launch
-        scan()
         NSLog("[WhiskyClaude] EventWatcher: watching \(dir.path)")
+    }
+
+    /// Delete every .json file in the events dir without firing apply().
+    /// Called once on start() so leftover events from a previous session
+    /// don't replay their sounds at launch.
+    private func discardStaleFiles() {
+        guard let contents = try? FileManager.default.contentsOfDirectory(
+            at: dir, includingPropertiesForKeys: nil
+        ) else { return }
+        let stale = contents.filter { $0.pathExtension == "json" }
+        for file in stale {
+            try? FileManager.default.removeItem(at: file)
+        }
+        if !stale.isEmpty {
+            NSLog("[WhiskyClaude] EventWatcher: discarded \(stale.count) stale event(s) at startup")
+        }
     }
 
     func stop() {
