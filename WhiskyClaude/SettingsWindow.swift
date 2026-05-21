@@ -191,8 +191,23 @@ struct AboutTab: View {
                 .buttonStyle(.link)
             }
             .padding(.top, 4)
+
+            Spacer()
+
+            // Uninstall — single-click entry point that walks through every
+            // install side-effect and reverses it after a confirmation dialog.
+            Button(role: .destructive) {
+                Uninstaller.confirmAndUninstall()
+            } label: {
+                Label("Uninstall Whisky Claude…", systemImage: "trash")
+                    .font(.callout)
+            }
+            .buttonStyle(.bordered)
+            .tint(.red)
+            .padding(.bottom, 12)
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .padding(.vertical, 16)
     }
 }
 
