@@ -45,6 +45,10 @@ sleep 0.5
 rm -rf "$INSTALL_PATH"
 cp -R "$RENAMED_APP" "$INSTALL_PATH"
 
+# Clean up build artifacts so they don't appear in Spotlight as duplicate
+# copies of the app. The /Applications copy is the only one users should see.
+rm -rf "$SOURCE_APP" "$RENAMED_APP"
+
 echo "→ installing pet-event helper"
 mkdir -p ~/.claude/scripts
 cp scripts/dot-claude/wc-event.sh ~/.claude/scripts/wc-event.sh

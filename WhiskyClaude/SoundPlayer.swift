@@ -4,6 +4,13 @@ import Foundation
 final class SoundPlayer {
     static let shared = SoundPlayer()
     private var players: [String: AVAudioPlayer] = [:]
+    /// Tracks the last time each named sound was played. Used to debounce
+    /// rapid identical replays — Claude Code's Notification hook fires
+    /// every ~30s while the user is still being prompted, and we don't
+    /// want to keep saying "Whisky is done, Ahmed" over and over.
+    private var lastPlayedAt: [String: CFTimeInterval] = [:]
+    /// Minimum interval between identical sound replays (seconds).
+    private let debounceInterval: CFTimeInterval = 30.0
 
     private init() {}
 
@@ -12,6 +19,15 @@ final class SoundPlayer {
             NSLog("[WhiskyClaude] SoundPlayer.play(\(name)) skipped — soundsEnabled is false")
             return
         }
+        // Debounce: skip if the same sound played within the last 30s. Claude
+        // Code's Notification hook fires periodically while a user is still
+        // being prompted, which would otherwise produce a repetitive announcement.
+        let now = CACurrentMediaTime()
+        if let last = lastPlayedAt[name], now - last < debounceInterval {
+            NSLog("[WhiskyClaude] SoundPlayer.play(\(name)) debounced — last played \(Int(now - last))s ago")
+            return
+        }
+        lastPlayedAt[name] = now
         NSLog("[WhiskyClaude] SoundPlayer.play(\(name)) firing")
 
         if let cached = players[name] {
