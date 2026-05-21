@@ -83,11 +83,15 @@ final class EventWatcher {
                 return a < b
             }
         for file in files {
-            if let data = try? Data(contentsOf: file),
-               let event = try? JSONDecoder().decode(Event.self, from: data) {
+            do {
+                let data = try Data(contentsOf: file)
+                let event = try JSONDecoder().decode(Event.self, from: data)
+                NSLog("[WhiskyClaude] EventWatcher: dispatching apply(\(event.type)) from \(file.lastPathComponent)")
                 DispatchQueue.main.async {
                     AttentionState.shared.apply(type: event.type)
                 }
+            } catch {
+                NSLog("[WhiskyClaude] EventWatcher: failed to decode \(file.lastPathComponent): \(error)")
             }
             try? FileManager.default.removeItem(at: file)
         }
@@ -115,6 +119,7 @@ final class AttentionState {
         case "done":                state = .taskCompleted
         default:                    state = .idle
         }
+        NSLog("[WhiskyClaude] AttentionState.apply type=\(type) → \(state)")
         self.current = state
         scheduleIdleDrift()
         NotificationCenter.default.post(name: .WhiskyClaudeNotchStatusChanged, object: nil)

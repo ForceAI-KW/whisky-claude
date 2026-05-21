@@ -28,6 +28,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             queue: .main
         ) { [weak self] _ in
             let kind = AttentionState.shared.current
+            NSLog("[WhiskyClaude] state observer fired, kind=\(kind)")
             self?.menuBarIcon.onStateChange(kind)
             // Sounds: attention → "waitingForInput", done → "taskCompleted".
             // Same MP3 filenames Notchy used so we don't have to rename assets.

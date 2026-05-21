@@ -34,8 +34,15 @@ else
 fi
 
 uuid=$(uuidgen | tr 'A-Z' 'a-z')
+final="$EVENTS_DIR/$uuid.json"
+tmp="$EVENTS_DIR/$uuid.json.tmp"
 
-cat > "$EVENTS_DIR/$uuid.json" <<EOF
+# Write to a .tmp file FIRST, then rename atomically to .json. This avoids
+# a race where the watcher (DispatchSource on .write events) reads the file
+# while we're still streaming bytes into it — Swift's JSONDecoder would
+# see truncated content and silently drop the event. The .tmp suffix means
+# the watcher's `pathExtension == "json"` filter ignores it during writing.
+cat > "$tmp" <<EOF
 {
   "type": "$EVENT_TYPE",
   "ts": "$ts",
@@ -43,3 +50,4 @@ cat > "$EVENTS_DIR/$uuid.json" <<EOF
   "message": $(printf '%s' "$message" | jq -Rs . 2>/dev/null || echo '""')
 }
 EOF
+mv "$tmp" "$final"
