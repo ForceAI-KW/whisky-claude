@@ -22,7 +22,7 @@ final class ClapDetector: NSObject {
 
     private var analyzer: SNAudioStreamAnalyzer?
     private var request: SNClassifySoundRequest?
-    private let analysisQueue = DispatchQueue(label: "com.ahmadsharaf.WhiskyClaude.slapAnalysis")
+    private let analysisQueue = DispatchQueue(label: "WhiskyClaude.slapAnalysis")
 
     private var isRunning = false
     private var lastFireAt: CFTimeInterval = 0

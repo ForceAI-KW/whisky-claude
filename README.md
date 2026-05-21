@@ -1,24 +1,115 @@
 # Whisky Claude
 
-A Claude mascot that lives in the macOS notch. Animates + plays a sound when Claude Code needs your attention. Double-clap to open a Claude terminal session.
+> A native macOS companion for [Claude Code](https://claude.com/claude-code). A little orange Claude character lives beside the notch on your MacBook, dances calmly when idle, and bounces + plays a sound when Claude Code needs your attention.
 
-Fork of [Notchy](https://github.com/adamlyttleapps/notchy) by Adam Lyttle (MIT). See `LICENSE` for attribution.
+![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue) ![Swift 6](https://img.shields.io/badge/Swift-6-orange) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
-## Build
+---
+
+## What it does
+
+When you run `claude` in any terminal — Terminal.app, iTerm, Warp, whatever — Whisky Claude reacts via Claude Code's hook system:
+
+| Claude Code event | What happens |
+|---|---|
+| Notification (Claude needs your input) | Mascot does a dramatic 360° spin + scale pop + **plays an attention sound** |
+| Stop (Claude finished its turn) | Mascot does a celebratory half-spin + **plays a done sound** |
+| Idle | Mascot lives its life — paces between the left and right side of the notch, dances calmly in place (Trump-style head nod + body sway), peeks up into the notch occasionally |
+
+Plus:
+
+- **Slap the Mac** to open a new Claude terminal session — single firm tap on the lid, desk, or palm-rest. Detected on-device via Apple's `SoundAnalysis` framework.
+- **"Hey Claude" / "Hey Whisky"** wake words — on-device via Apple's `Speech` framework. Audio never leaves your Mac.
+- **Keeps your Mac awake** so long-running Claude Code sessions don't get interrupted by system idle sleep. (Display sleep still respected.)
+- **Menu bar icon** — static Claude logo; click for Open Terminal / Settings / Quit.
+
+## Privacy
+
+- **No network calls.** Everything runs locally.
+- **Microphone audio** (used only when the slap detector or wake-word recognizer is enabled — both **off by default**) is analyzed in-buffer and immediately discarded. It is never saved to disk, never sent anywhere.
+- **Claude Code hooks** write event payloads to `~/.claude/pet-events/`. Each event is consumed within milliseconds and deleted.
+- Sandboxing intentionally disabled — needs to read `~/.claude/pet-events/` and post an `IOPMAssertion`.
+
+## Install
 
 ```bash
-xcodebuild -project WhiskyClaude.xcodeproj -scheme WhiskyClaude \
-    -configuration Debug -derivedDataPath build \
-    CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
-open build/Build/Products/Debug/WhiskyClaude.app
+git clone https://github.com/ForceAI-KW/whisky-claude.git
+cd whisky-claude
+./scripts/install.sh
 ```
 
-## Install (Release + Login Item)
+The installer:
+1. Builds the Release config with ad-hoc codesign (no Apple Developer account required)
+2. Copies the app to `/Applications/Whisky Claude.app`
+3. Installs the Claude Code hook helper to `~/.claude/scripts/wc-event.sh`
+4. Wires the 4 hooks (`Stop`, `Notification`, `PreToolUse`, `UserPromptSubmit`) into `~/.claude/settings.json` — safely, preserving any other hooks you already have
+5. Registers as a macOS Login Item so it auto-starts at login
+6. Cleans up build artifacts so they don't appear as duplicate apps in Spotlight
 
-```bash
-./scripts/install.sh    # built in Task 8 of the plan
+### Uninstall
+
+Either:
+- **From the app**: Menu bar icon → Settings → About → "Uninstall Whisky Claude…"
+- **From the shell**: `./scripts/uninstall.sh`
+
+Both paths walk through every install side-effect in reverse and back up `~/.claude/settings.json` before modifying it.
+
+## How it works
+
+```
+┌─ Claude Code session anywhere ──────────────────┐
+│  Hook fires                                     │
+│  (Stop / Notification / PreToolUse / UserPrompt)│
+│                  │                              │
+│                  ▼                              │
+│  ~/.claude/scripts/wc-event.sh                  │
+│  (writes event JSON atomically via mv)          │
+│                  │                              │
+│                  ▼                              │
+│  ~/.claude/pet-events/<uuid>.json               │
+└─────────────────────────────────────────────────┘
+                   │
+                   ▼
+┌─ Whisky Claude ─────────────────────────────────┐
+│  EventWatcher  (DispatchSource on the dir)      │
+│       │                                         │
+│       ▼                                         │
+│  AttentionState.apply  →  NotificationCenter    │
+│       │           │                │            │
+│       ▼           ▼                ▼            │
+│  MascotWindow  SoundPlayer    MenuBarIcon       │
+│  .triggerBounce  .play            (static)      │
+└─────────────────────────────────────────────────┘
 ```
 
-## Architecture
+The mascot is a borderless `NSPanel` at `statusBar` level, positioned using `NSScreen.builtIn.auxiliaryTopLeftArea`/`auxiliaryTopRightArea` so it reads real notch measurements, not guesses. It's `ignoresMouseEvents = true` so it never intercepts clicks, and constrained horizontally to the notch's outline so it never covers menu items in apps with long menu bars (Xcode, Logic, Final Cut).
 
-See `CLAUDE.md` for the inherited Notchy architecture + `docs/plans/2026-05-21-whisky-claude-fork.md` for active modifications.
+More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
+
+## Requirements
+
+- macOS 13 or later (tested on macOS 26)
+- A MacBook with a notch is ideal; works on un-notched Macs too (mascot anchors to menu bar bottom)
+- For slap detection + wake words: microphone + Speech Recognition permission (macOS prompts on first use)
+
+## Settings
+
+Click the menu bar icon → **Settings…**
+
+- **General** — toggle the mascot, sounds, and the "keep Mac awake" feature
+- **Voice** — opt into slap detection (with sensitivity slider) and wake words
+- **About** — version info, links, and the uninstall button
+
+## Credits
+
+Whisky Claude is a heavily modified fork of [**Notchy**](https://github.com/adamlyttleapps/notchy) by [Adam Lyttle](https://github.com/adamlyttleapps), licensed under MIT. Many architectural decisions (NSPanel-over-notch, status item ownership, SwiftUI hosted in AppKit) came from his work. The mascot, choreography, voice triggers, Claude Code integration, and uninstall flow are original.
+
+The Claude character icon is the [Claude Code logo](https://www.anthropic.com), redrawn as a vector. "Claude" is a trademark of Anthropic.
+
+## Contributing
+
+Bug reports + PRs welcome.
+
+## License
+
+[MIT](LICENSE) — same as upstream Notchy.

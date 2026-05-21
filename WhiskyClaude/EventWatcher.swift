@@ -31,7 +31,7 @@ final class EventWatcher {
     private let dir: URL
     private var source: DispatchSourceFileSystemObject?
     private var fd: Int32 = -1
-    private let queue = DispatchQueue(label: "com.ahmadsharaf.WhiskyClaude.eventWatcher")
+    private let queue = DispatchQueue(label: "WhiskyClaude.eventWatcher")
 
     private struct Event: Decodable {
         let type: String
