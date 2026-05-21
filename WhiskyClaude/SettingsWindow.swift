@@ -90,7 +90,7 @@ struct VoiceTab: View {
         Form {
             Toggle(isOn: $settings.clapTriggerEnabled) {
                 Text("Double-clap to open Claude")
-                Text("Listens to the microphone. Audio is analyzed locally and never recorded or sent anywhere.")
+                Text("Uses Apple's on-device sound classifier (SoundAnalysis framework). Audio is analyzed locally on your Mac and is never recorded, stored, or sent anywhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
