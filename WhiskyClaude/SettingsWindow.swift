@@ -123,7 +123,7 @@ class SettingsWindowController {
             backing: .buffered,
             defer: false
         )
-        win.title = "WhiskyClaude Settings"
+        win.title = "Whisky Claude Settings"
         win.contentView = hostingView
         win.center()
         win.isReleasedWhenClosed = false

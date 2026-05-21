@@ -1,34 +1,24 @@
-# Notchy
+# Whisky Claude
 
-A macOS menu bar app that puts Claude Code right in your MacBook's notch. Hover over the notch or click the menu bar icon to open a floating terminal panel with embedded sessions that automatically detect your open Xcode projects.
+A Claude mascot that lives in the macOS notch. Animates + plays a sound when Claude Code needs your attention. Double-clap to open a Claude terminal session.
 
-<!-- Add your screenshot here: ![Notchy](screenshot.png) -->
+Fork of [Notchy](https://github.com/adamlyttleapps/notchy) by Adam Lyttle (MIT). See `LICENSE` for attribution.
 
-## Features
-
-- **Notch integration** — hover over the MacBook notch to reveal the terminal panel
-- **Xcode project detection** — automatically discovers open Xcode projects and `cd`s into them
-- **Multi-session tabs** — run multiple Claude Code sessions side by side
-- **Live status in the notch** — animated pill shows whether Claude is working, waiting, or done
-- **Git checkpoints** — Cmd+S to snapshot your project before Claude makes changes
-
-## Requirements
-
-- macOS 26.0+
-- MacBook with a notch (for notch features; menu bar still works without one)
-
-## Building
-
-Open `Notchy.xcodeproj` in Xcode and build (Cmd+B), or from the command line:
+## Build
 
 ```bash
-xcodebuild -project Notchy.xcodeproj -scheme Notchy -configuration Debug build
+xcodebuild -project WhiskyClaude.xcodeproj -scheme WhiskyClaude \
+    -configuration Debug -derivedDataPath build \
+    CODE_SIGN_IDENTITY="-" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO build
+open build/Build/Products/Debug/WhiskyClaude.app
 ```
 
-## Dependencies
+## Install (Release + Login Item)
 
-- [SwiftTerm](https://github.com/migueldeicaza/SwiftTerm) — terminal emulator view (via Swift Package Manager)
+```bash
+./scripts/install.sh    # built in Task 8 of the plan
+```
 
-## License
+## Architecture
 
-[MIT](LICENSE)
+See `CLAUDE.md` for the inherited Notchy architecture + `docs/plans/2026-05-21-whisky-claude-fork.md` for active modifications.
