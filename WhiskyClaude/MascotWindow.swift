@@ -1,18 +1,30 @@
 import AppKit
 import SwiftUI
 
-/// Always-visible floating panel showing the Claude character just below the
-/// macOS notch. Continuously runs an idle float animation. When attention or
-/// done events fire, layers a more energetic bounce on top of the idle motion.
+/// Always-visible floating panel showing the Claude character "around" the
+/// macOS notch. Sits with its center on the notch's bottom edge — so the upper
+/// half of the mascot is clipped by the hardware notch (no display there) and
+/// the lower half peeks out below it onto the desktop. Minimises the desktop
+/// footprint to roughly half the mascot height.
+///
+/// Idle animation: gentle vertical bob + tiny rotation, runs forever.
+/// Attention/done overlay: a bigger downward "peek out" plus rotation wobble,
+/// layered on top of idle. After the bounce, settles back to resting position
+/// (idle continues).
 final class MascotWindow: NSPanel {
     private let hostView: NSHostingView<MascotContent>
     private let state = MascotAnimationState()
     private var screenObserver: Any?
+
     /// Visible logical size of the mascot inside the window.
-    static let mascotSize: CGFloat = 56
-    /// Window padding around the mascot — gives room for the idle float +
-    /// the bigger attention bounce to remain inside the window bounds.
-    private static let windowPadding: CGFloat = 40
+    /// Roughly tracks the menu-bar / notch height (~37pt) — small enough not to
+    /// extend horizontally beyond the notch, big enough to read at a glance.
+    static let mascotSize: CGFloat = 36
+
+    /// Padding around the mascot for the idle/attention motion to occur inside
+    /// the window bounds without clipping. Kept tight so we don't grab a huge
+    /// region of the menu-bar that could overlap menu items.
+    private static let windowPadding: CGFloat = 24
 
     init() {
         hostView = NSHostingView(rootView: MascotContent(state: state))
@@ -45,9 +57,8 @@ final class MascotWindow: NSPanel {
             cv.layer?.masksToBounds = false
         }
 
-        positionUnderNotch()
+        positionAtNotch()
         observeScreenChanges()
-        // Apply current visibility setting
         applyVisibility(SettingsManager.shared.mascotVisible)
     }
 
@@ -57,21 +68,21 @@ final class MascotWindow: NSPanel {
         }
     }
 
-    /// Position the window directly under the notch, centered horizontally,
-    /// with the mascot's TOP just below the menu bar's BOTTOM edge.
-    /// On Macs without a notch (external display, older Mac), positions at
-    /// top-center under the menu bar as a graceful fallback.
-    private func positionUnderNotch() {
+    /// Position the window so the mascot's vertical center lines up with the
+    /// notch's bottom edge (= menu bar's bottom edge on a notch Mac). Half the
+    /// mascot sits behind the notch outline (clipped — invisible because
+    /// there's no display in the notch) and half peeks out onto the desktop.
+    /// Horizontally centered on the screen so it stays within the notch's
+    /// horizontal width (≈180pt on M-series), well clear of menu items.
+    private func positionAtNotch() {
         guard let screen = NSScreen.builtIn else { return }
         let frame = screen.frame
         let visible = screen.visibleFrame
         let w = Self.mascotSize + Self.windowPadding
         let h = Self.mascotSize + Self.windowPadding
-        let menuBarBottom = visible.maxY
-        // Window's top edge sits a few pt below the menu bar bottom so the
-        // mascot has clear breathing room and never overlaps the bar.
-        let topGap: CGFloat = 4
-        let y = menuBarBottom - h - topGap
+        let notchBottom = visible.maxY   // = screen.maxY - menuBarHeight
+        // Window center y = notchBottom → window y origin = notchBottom - h/2
+        let y = notchBottom - h / 2
         let x = frame.midX - w / 2
         setFrame(NSRect(x: x, y: y, width: w, height: h), display: true)
     }
@@ -81,16 +92,14 @@ final class MascotWindow: NSPanel {
             forName: NSApplication.didChangeScreenParametersNotification,
             object: nil, queue: .main
         ) { [weak self] _ in
-            self?.positionUnderNotch()
+            self?.positionAtNotch()
         }
     }
 
-    /// Toggle visibility based on the user setting. When hidden, the panel is
-    /// ordered out so it stops rendering frames (saves a bit of CPU). When
-    /// shown again, re-positions in case the screen layout changed while hidden.
+    /// Toggle visibility based on the user setting.
     func applyVisibility(_ visible: Bool) {
         if visible {
-            positionUnderNotch()
+            positionAtNotch()
             orderFrontRegardless()
         } else {
             orderOut(nil)
@@ -107,8 +116,8 @@ final class MascotWindow: NSPanel {
 }
 
 enum MascotBounceKind {
-    case attention   // 3 bounces, higher
-    case done        // 2 bounces, gentler
+    case attention   // bigger peek-out
+    case done        // smaller peek-out
 }
 
 @Observable
@@ -123,10 +132,14 @@ final class MascotAnimationState {
 }
 
 /// SwiftUI view rendering the Claude character. Two layered animations:
-///   - Persistent idle: a sin-curve y-bob that runs forever via a TimelineView
-///     publisher. Small amplitude (~3pt), ~2s cycle.
-///   - Attention/done bounce: a higher-amplitude offset added ON TOP of the
-///     idle bob, triggered by `state.bounceTrigger` increments.
+///   - Persistent idle: a small sin-curve y-bob + slow rotation wobble, runs
+///     forever via TimelineView at ~30fps. Amplitude is small (±1.5pt) so the
+///     mascot stays mostly within the notch boundary and the visible peek
+///     below the notch is stable.
+///   - Attention/done bounce: a DOWNWARD spring offset added on top of idle,
+///     so the mascot briefly "peeks further out" from below the notch. Repeats
+///     a few times then settles back. Bounce amplitude is capped so the peek
+///     stays close to the menu bar (minimal desktop intrusion).
 struct MascotContent: View {
     @State var state: MascotAnimationState
 
@@ -136,14 +149,14 @@ struct MascotContent: View {
     var body: some View {
         TimelineView(.animation(minimumInterval: 1.0 / 30.0, paused: false)) { timeline in
             let elapsed = timeline.date.timeIntervalSinceReferenceDate
-            let idleY = sin(elapsed * 2 * .pi / 2.0) * 3.0   // 2s cycle, 3pt amplitude
-            let idleRot = sin(elapsed * 2 * .pi / 3.5) * 1.5  // 3.5s cycle, ±1.5deg
+            let idleY = sin(elapsed * 2 * .pi / 2.4) * 1.5     // 2.4s cycle, ±1.5pt
+            let idleRot = sin(elapsed * 2 * .pi / 3.8) * 1.0   // 3.8s cycle, ±1°
 
             Image("ClaudeLogo")
                 .resizable()
                 .interpolation(.high)
                 .frame(width: MascotWindow.mascotSize, height: MascotWindow.mascotSize)
-                .shadow(color: .black.opacity(0.25), radius: 6, x: 0, y: 3)
+                .shadow(color: .black.opacity(0.22), radius: 4, x: 0, y: 2)
                 .offset(y: idleY + bounceOffset)
                 .rotationEffect(.degrees(idleRot + bounceRotation))
         }
@@ -153,29 +166,31 @@ struct MascotContent: View {
         }
     }
 
-    /// Layered bounce on top of the persistent idle motion. Animates
-    /// `bounceOffset` and `bounceRotation` via SwiftUI springs, scheduled
-    /// over a short duration.
+    /// Peek-out bounce: mascot shifts DOWNWARD (positive y in SwiftUI) to
+    /// reveal more of itself from below the notch, then springs back. The
+    /// downward direction is deliberate — moving up would push the mascot
+    /// further into the notch outline where there's no display, making the
+    /// bounce invisible.
     private func runBounce(kind: MascotBounceKind) {
         bounceOffset = 0
         bounceRotation = 0
 
         let bounces: Int = (kind == .attention) ? 3 : 2
-        let peakHeight: CGFloat = (kind == .attention) ? 28 : 18
-        let perBounce: Double = (kind == .attention) ? 0.36 : 0.42
-        let wobbleDeg: Double = (kind == .attention) ? 8 : 4
+        let peakHeight: CGFloat = (kind == .attention) ? 10 : 6
+        let perBounce: Double = (kind == .attention) ? 0.34 : 0.40
+        let wobbleDeg: Double = (kind == .attention) ? 5 : 3
 
         for i in 0..<bounces {
             let start = Double(i) * perBounce
-            let up = perBounce * 0.45
+            let down = perBounce * 0.45
             DispatchQueue.main.asyncAfter(deadline: .now() + start) {
-                withAnimation(.spring(response: 0.22, dampingFraction: 0.55)) {
-                    bounceOffset = -peakHeight
+                withAnimation(.spring(response: 0.20, dampingFraction: 0.55)) {
+                    bounceOffset = peakHeight    // positive = downward = more visible
                     bounceRotation = (i % 2 == 0) ? wobbleDeg : -wobbleDeg
                 }
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + start + up) {
-                withAnimation(.spring(response: 0.28, dampingFraction: 0.55)) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + start + down) {
+                withAnimation(.spring(response: 0.26, dampingFraction: 0.55)) {
                     bounceOffset = 0
                     bounceRotation = 0
                 }
@@ -188,7 +203,6 @@ struct MascotContent: View {
 
 extension NSScreen {
     /// Returns the built-in display (the one with the notch), or the main screen as fallback.
-    /// Re-added here after NotchWindow.swift was removed in the v2 refactor.
     static var builtIn: NSScreen? {
         screens.first { screen in
             let id = screen.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? CGDirectDisplayID ?? 0
