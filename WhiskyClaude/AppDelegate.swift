@@ -7,6 +7,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var mascotWindow: MascotWindow!
     private var statusObserver: Any?
 
+    /// Last time `openClaudeInTerminal` actually fired. Used to debounce
+    /// rapid re-triggers from the slap / wake-word / menu paths so two
+    /// slaps or three "hey whisky"s only open ONE Terminal session.
+    private var lastOpenedAt: CFTimeInterval = 0
+    private let openDebounceInterval: CFTimeInterval = 5.0
+
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[WhiskyClaude] launched")
 
@@ -112,8 +118,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     }
 
     /// Opens Terminal.app and runs `claude` in the user's home directory.
-    /// Wired to both the menu item and the double-clap callback.
+    /// Wired to the menu item, the slap callback, and the wake-word callback.
+    /// Debounces re-entry within `openDebounceInterval` so two slaps or
+    /// three "hey whisky"s only open ONE session.
     func openClaudeInTerminal() {
+        let now = CACurrentMediaTime()
+        if now - lastOpenedAt < openDebounceInterval {
+            NSLog("[WhiskyClaude] openClaudeInTerminal debounced — fired \(Int(now - lastOpenedAt))s ago")
+            return
+        }
+        lastOpenedAt = now
+
         let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
         let script = """
         tell application "Terminal"
