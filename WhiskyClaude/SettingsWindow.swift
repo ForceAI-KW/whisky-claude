@@ -54,6 +54,13 @@ struct GeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Toggle(isOn: $settings.preventSleep) {
+                Text("Keep Mac awake while Whisky Claude is running")
+                Text("Holds off system idle sleep so long Claude Code sessions aren't interrupted. The display can still dim or sleep based on your system settings.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

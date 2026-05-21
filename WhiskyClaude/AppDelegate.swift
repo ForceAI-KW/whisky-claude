@@ -70,6 +70,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if SettingsManager.shared.wakeWordEnabled {
             KeywordRecognizer.shared.start()
         }
+
+        // 6. Hold off system idle sleep (default ON via Settings).
+        SleepBlocker.shared.applySetting(SettingsManager.shared.preventSleep)
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        // Release the sleep assertion explicitly. IOKit cleans up on process
+        // exit anyway, but doing it here is hygienic and makes the log clearer.
+        SleepBlocker.shared.stop()
     }
 
     private func buildMenu() -> NSMenu {
