@@ -25,6 +25,17 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         // Detect in background so launch isn't blocked
         sessionStore.detectAllXcodeProjectsAsync()
         EventWatcher.shared.start()
+
+        // Wire double-clap → open Notchy panel + new Claude session.
+        ClapDetector.shared.setSensitivity(SettingsManager.shared.clapSensitivity)
+        ClapDetector.shared.onDoubleClap = { [weak self] in
+            NSLog("[WhiskyClaude] double-clap detected — opening Claude terminal")
+            self?.sessionStore.createQuickSession()
+            self?.showPanelBelowStatusItem()
+        }
+        if SettingsManager.shared.clapTriggerEnabled {
+            ClapDetector.shared.start()
+        }
     }
 
     private func setupStatusItem() {

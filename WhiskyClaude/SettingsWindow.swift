@@ -5,11 +5,13 @@ enum SettingsTab: String, CaseIterable {
     case about = "About"
     case general = "General"
     case integrations = "Integrations"
+    case voice = "Voice"
 
     var icon: String {
         switch self {
         case .general: return "gearshape"
         case .integrations: return "puzzlepiece"
+        case .voice: return "mic"
         case .about: return "info.circle"
         }
     }
@@ -32,6 +34,10 @@ struct SettingsContentView: View {
             IntegrationsTab()
                 .tabItem { Label(SettingsTab.integrations.rawValue, systemImage: SettingsTab.integrations.icon) }
                 .tag(SettingsTab.integrations)
+
+            VoiceTab()
+                .tabItem { Label(SettingsTab.voice.rawValue, systemImage: SettingsTab.voice.icon) }
+                .tag(SettingsTab.voice)
         }
         .frame(width: 450, height: 240)
     }
@@ -70,6 +76,35 @@ struct IntegrationsTab: View {
                 Text("Shows real-time status updates")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+            }
+        }
+        .padding(20)
+        .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+    }
+}
+
+struct VoiceTab: View {
+    @Bindable private var settings = SettingsManager.shared
+
+    var body: some View {
+        Form {
+            Toggle(isOn: $settings.clapTriggerEnabled) {
+                Text("Double-clap to open Claude")
+                Text("Listens to the microphone. Audio is analyzed locally and never recorded or sent anywhere.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+            if settings.clapTriggerEnabled {
+                HStack {
+                    Text("Sensitivity")
+                    Slider(value: $settings.clapSensitivity, in: 0...1) {
+                        EmptyView()
+                    } minimumValueLabel: {
+                        Text("Lenient").font(.caption)
+                    } maximumValueLabel: {
+                        Text("Strict").font(.caption)
+                    }
+                }
             }
         }
         .padding(20)
