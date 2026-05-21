@@ -1,274 +1,86 @@
 import AppKit
-import SwiftUI
-class AppDelegate: NSObject, NSApplicationDelegate {
+import Foundation
+
+final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
-    private var panel: TerminalPanel!
-    private var notchWindow: NotchWindow?
-    private let sessionStore = SessionStore.shared
-    private let settings = SettingsManager.shared
-    private var hoverHideTimer: Timer?
-    private var hoverGlobalMonitor: Any?
-    private var hoverLocalMonitor: Any?
-    private var hotkeyMonitor: Any?
-    /// Whether the panel was opened via notch hover (vs status item click)
-    private var panelOpenedViaHover = false
-    private let hoverMargin: CGFloat = 15
-    private let hoverHideDelay: TimeInterval = 0.06
+    private var menuBarIcon: MenuBarIcon!
+    private var statusObserver: Any?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
-        setupStatusItem()
-        setupPanel()
-        if settings.showNotch {
-            setupNotchWindow()
-        }
-        setupHotkey()
+        NSLog("[WhiskyClaude] launched")
+
+        // 1. Menu bar icon + dropdown
+        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
+        menuBarIcon = MenuBarIcon(statusItem: statusItem)
+        statusItem.menu = buildMenu()
+
+        // 2. External Claude Code hook event watcher
         EventWatcher.shared.start()
 
-        // Wire double-clap → open Notchy panel + new Claude session.
-        ClapDetector.shared.setSensitivity(SettingsManager.shared.clapSensitivity)
-        ClapDetector.shared.onDoubleClap = { [weak self] in
-            NSLog("[WhiskyClaude] double-clap detected — opening Claude terminal")
-            self?.sessionStore.createQuickSession()
-            self?.showPanelBelowStatusItem()
+        // 3. React to state changes — animate icon + play sound
+        statusObserver = NotificationCenter.default.addObserver(
+            forName: .WhiskyClaudeNotchStatusChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            let kind = AttentionState.shared.current
+            self?.menuBarIcon.onStateChange(kind)
+            // Sounds: attention → "waitingForInput", done → "taskCompleted".
+            // Same MP3 filenames Notchy used so we don't have to rename assets.
+            switch kind {
+            case .waitingForInput:  SoundPlayer.shared.play("waitingForInput")
+            case .taskCompleted:    SoundPlayer.shared.play("taskCompleted")
+            case .working, .idle:   break
+            }
         }
+
+        // 4. Clap detector (opt-in via Settings)
+        ClapDetector.shared.setSensitivity(SettingsManager.shared.clapSensitivity)
+        ClapDetector.shared.onDoubleClap = { [weak self] in self?.openClaudeInTerminal() }
         if SettingsManager.shared.clapTriggerEnabled {
             ClapDetector.shared.start()
         }
     }
 
-    private func setupStatusItem() {
-        statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
-        if let button = statusItem.button {
-            button.image = NSImage(named: "menuIcon") //NSImage(systemSymbolName: "terminal", accessibilityDescription: "WhiskyClaude")
-            button.image?.isTemplate = true  // lets macOS handle light/dark mode
-            button.target = self
-            button.action = #selector(statusItemClicked(_:))
-            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
+    private func buildMenu() -> NSMenu {
+        let menu = NSMenu()
+        menu.addItem(withTitle: "Open Claude in Terminal", action: #selector(openClaudeInTerminalAction), keyEquivalent: "")
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(withTitle: "Settings\u{2026}", action: #selector(showSettings), keyEquivalent: ",")
+        menu.addItem(NSMenuItem.separator())
+        menu.addItem(withTitle: "Quit Whisky Claude", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        for item in menu.items {
+            item.target = self
         }
+        return menu
     }
 
-    private func setupPanel() {
-        panel = TerminalPanel(sessionStore: sessionStore)
-        // When the panel hides for any reason, clean up hover tracking
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.didResignKeyNotification,
-            object: panel,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self, !self.panel.isVisible else { return }
-            self.notchWindow?.endHover()
-            self.panelOpenedViaHover = false
-            self.stopHoverTracking()
-        }
-        // When panel becomes key (user clicked on it), stop hover tracking
-        // since resign-key will handle hiding from here
-        NotificationCenter.default.addObserver(
-            forName: NSWindow.didBecomeKeyNotification,
-            object: panel,
-            queue: .main
-        ) { [weak self] _ in
-            guard let self else { return }
-            if self.panelOpenedViaHover {
-                self.panelOpenedViaHover = false
-                self.stopHoverTracking()
-                // Panel is now in "click mode" — shrink the notch hover state
-                // since hover tracking is no longer managing it
-                self.notchWindow?.endHover()
-            }
-        }
+    @objc private func openClaudeInTerminalAction() {
+        openClaudeInTerminal()
     }
 
-    private func setupNotchWindow() {
-        notchWindow = NotchWindow { [weak self] in
-            self?.notchHovered()
-        }
-        notchWindow?.isPanelVisible = { [weak self] in
-            self?.panel.isVisible ?? false
-        }
-    }
-
-    private func setupHotkey() {
-        // Global monitor: fires when another app is focused (backtick = keyCode 50)
-        hotkeyMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
-            guard event.keyCode == 50,
-                  event.modifierFlags.intersection(.deviceIndependentFlagsMask).subtracting(.function).isEmpty
-            else { return }
-            DispatchQueue.main.async { self?.togglePanel() }
-        }
-    }
-
-    private func notchHovered() {
-        guard !panel.isVisible else { return }
-        showPanelBelowNotch()
-        panelOpenedViaHover = true
-        startHoverTracking()
-    }
-
-    private func showPanelBelowNotch() {
-        guard let screen = NSScreen.builtIn else { return }
-        panel.showPanelCentered(on: screen)
-    }
-
-    // MARK: - Hover-to-hide tracking
-
-    private func startHoverTracking() {
-        stopHoverTracking()
-        hoverGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] _ in
-            self?.checkHoverBounds()
-        }
-        hoverLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: [.mouseMoved, .leftMouseDragged]) { [weak self] event in
-            self?.checkHoverBounds()
-            return event
-        }
-    }
-
-    private func stopHoverTracking() {
-        hoverHideTimer?.invalidate()
-        hoverHideTimer = nil
-        if let monitor = hoverGlobalMonitor {
-            NSEvent.removeMonitor(monitor)
-            hoverGlobalMonitor = nil
-        }
-        if let monitor = hoverLocalMonitor {
-            NSEvent.removeMonitor(monitor)
-            hoverLocalMonitor = nil
-        }
-    }
-
-    private func checkHoverBounds() {
-        guard panel.isVisible, panelOpenedViaHover, !sessionStore.isPinned, !sessionStore.isShowingDialog else {
-            cancelHoverHide()
+    /// Opens Terminal.app and runs `claude` in the user's home directory.
+    /// Wired to both the menu item and the double-clap callback.
+    func openClaudeInTerminal() {
+        let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
+        let script = """
+        tell application "Terminal"
+            activate
+            do script "cd '\(home)' && claude"
+        end tell
+        """
+        var error: NSDictionary?
+        guard let appleScript = NSAppleScript(source: script) else {
+            NSLog("[WhiskyClaude] failed to create AppleScript")
             return
         }
-
-        let mouse = NSEvent.mouseLocation
-        let inNotch = notchWindow?.frame.insetBy(dx: -hoverMargin, dy: -hoverMargin).contains(mouse) ?? false
-        let inPanel = panel.frame.insetBy(dx: -hoverMargin, dy: -hoverMargin).contains(mouse)
-
-        if inNotch || inPanel {
-            cancelHoverHide()
-        } else {
-            scheduleHoverHide()
+        appleScript.executeAndReturnError(&error)
+        if let error {
+            NSLog("[WhiskyClaude] AppleScript error: \(error)")
         }
     }
 
-    private func scheduleHoverHide() {
-        guard hoverHideTimer == nil else { return }
-        hoverHideTimer = Timer.scheduledTimer(withTimeInterval: hoverHideDelay, repeats: false) { [weak self] _ in
-            guard let self else { return }
-            // Re-check one more time before hiding (mouse may have returned)
-            let mouse = NSEvent.mouseLocation
-            let inNotch = self.notchWindow?.frame.insetBy(dx: -self.hoverMargin, dy: -self.hoverMargin).contains(mouse) ?? false
-            let inPanel = self.panel.frame.insetBy(dx: -self.hoverMargin, dy: -self.hoverMargin).contains(mouse)
-            if !inNotch && !inPanel && !self.sessionStore.isPinned && !self.sessionStore.isShowingDialog {
-                self.panel.hidePanel()
-                self.notchWindow?.endHover()
-                self.panelOpenedViaHover = false
-                self.stopHoverTracking()
-            }
-        }
+    @objc private func showSettings() {
+        SettingsWindowController.shared.show()
     }
-
-    private func cancelHoverHide() {
-        hoverHideTimer?.invalidate()
-        hoverHideTimer = nil
-    }
-
-    @objc private func statusItemClicked(_ sender: NSStatusBarButton) {
-        showContextMenu()
-    }
-
-    private func togglePanel() {
-        if panel.isVisible {
-            panel.hidePanel()
-            notchWindow?.endHover()
-            panelOpenedViaHover = false
-            stopHoverTracking()
-        } else {
-            panelOpenedViaHover = false
-            showPanelBelowStatusItem()
-        }
-    }
-
-    private func showContextMenu() {
-        let menu = NSMenu()
-
-        if !sessionStore.sessions.isEmpty {
-            for session in sessionStore.sessions {
-                let item = NSMenuItem(
-                    title: session.projectName,
-                    action: #selector(selectSession(_:)),
-                    keyEquivalent: ""
-                )
-                item.target = self
-                item.representedObject = session.id
-                menu.addItem(item)
-            }
-            menu.addItem(.separator())
-        }
-
-        let newItem = NSMenuItem(
-            title: "New Session",
-            action: #selector(createNewSession),
-            keyEquivalent: "n"
-        )
-        newItem.target = self
-        menu.addItem(newItem)
-
-        menu.addItem(.separator())
-
-        let settingsItem = NSMenuItem(
-            title: "Settings\u{2026}",
-            action: #selector(openSettings),
-            keyEquivalent: ","
-        )
-        settingsItem.target = self
-        menu.addItem(settingsItem)
-
-        menu.addItem(.separator())
-
-        let quitItem = NSMenuItem(
-            title: "Quit WhiskyClaude",
-            action: #selector(NSApplication.terminate(_:)),
-            keyEquivalent: "q"
-        )
-        menu.addItem(quitItem)
-
-        statusItem.menu = menu
-        statusItem.button?.performClick(nil)
-        statusItem.menu = nil
-    }
-
-    @objc private func selectSession(_ sender: NSMenuItem) {
-        guard let sessionId = sender.representedObject as? UUID else { return }
-        sessionStore.selectSession(sessionId)
-        showPanelBelowStatusItem()
-    }
-
-    @objc private func openSettings() {
-        SettingsWindowController.shared.show { [weak self] showNotch in
-            guard let self else { return }
-            if showNotch {
-                if self.notchWindow == nil { self.setupNotchWindow() }
-            } else {
-                self.notchWindow?.orderOut(nil)
-                self.notchWindow = nil
-            }
-        }
-    }
-
-    @objc private func createNewSession() {
-        sessionStore.createQuickSession()
-        showPanelBelowStatusItem()
-    }
-
-    private func showPanelBelowStatusItem() {
-        if let button = statusItem.button,
-           let window = button.window {
-            let buttonRect = button.convert(button.bounds, to: nil)
-            let screenRect = window.convertToScreen(buttonRect)
-            panel.showPanel(below: screenRect)
-        }
-    }
-
 }

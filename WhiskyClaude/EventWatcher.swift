@@ -1,10 +1,28 @@
 import Foundation
 import Combine
 
+// MARK: - Notification name
+
+extension Notification.Name {
+    /// Fired whenever the AttentionState changes. Kept as "NotchStatusChanged"
+    /// for backward-compat with any external integrators / install scripts.
+    static let WhiskyClaudeNotchStatusChanged = Notification.Name("WhiskyClaudeNotchStatusChanged")
+}
+
+// MARK: - Attention kind
+
+/// Mascot attention state, driven by external Claude Code hook events.
+enum AttentionKind: Equatable {
+    case idle
+    case working
+    case waitingForInput
+    case taskCompleted
+}
+
+// MARK: - Event watcher
+
 /// Watches ~/.claude/pet-events/ for new JSON event files written by Claude Code hooks.
-/// Each event sets `ExternalEventState.shared.current`, then the file is deleted.
-/// NotchDisplayState.current merges this external state with the panel's internal
-/// session states (priority order encoded there).
+/// Each event sets `AttentionState.shared.current`, then the file is deleted.
 final class EventWatcher {
     static let shared = EventWatcher()
 
@@ -66,7 +84,7 @@ final class EventWatcher {
             if let data = try? Data(contentsOf: file),
                let event = try? JSONDecoder().decode(Event.self, from: data) {
                 DispatchQueue.main.async {
-                    ExternalEventState.shared.apply(type: event.type)
+                    AttentionState.shared.apply(type: event.type)
                 }
             }
             try? FileManager.default.removeItem(at: file)
@@ -74,19 +92,21 @@ final class EventWatcher {
     }
 }
 
-/// Mirrors NotchDisplayState but driven by external file events. The aggregate
-/// NotchDisplayState.current merges this with the embedded terminal panel's
-/// session states (see NotchWindow.swift).
+// MARK: - Attention state
+
+/// Singleton state driven by external file events. Posts
+/// `.WhiskyClaudeNotchStatusChanged` whenever the state changes so that
+/// AppDelegate can animate the menu bar icon and play sounds.
 @Observable
-final class ExternalEventState {
-    static let shared = ExternalEventState()
-    private(set) var current: NotchDisplayState = .idle
+final class AttentionState {
+    static let shared = AttentionState()
+    private(set) var current: AttentionKind = .idle
     private var idleTimer: Timer?
 
     private init() {}
 
     func apply(type: String) {
-        let state: NotchDisplayState
+        let state: AttentionKind
         switch type {
         case "thinking", "working": state = .working
         case "attention":           state = .waitingForInput

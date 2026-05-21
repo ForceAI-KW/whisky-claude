@@ -7,7 +7,6 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		BD0000030000000000000003 /* SwiftTerm in Frameworks */ = {isa = PBXBuildFile; productRef = BD0000020000000000000002 /* SwiftTerm */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -27,7 +26,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				BD0000030000000000000003 /* SwiftTerm in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -70,7 +68,6 @@
 			);
 			name = WhiskyClaude;
 			packageProductDependencies = (
-				BD0000020000000000000002 /* SwiftTerm */,
 			);
 			productName = WhiskyClaude;
 			productReference = 31844E332F7210B20074F7B7 /* WhiskyClaude.app */;
@@ -101,7 +98,6 @@
 			mainGroup = 31844E2A2F7210B20074F7B7;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				BD0000010000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 31844E342F7210B20074F7B7 /* Products */;
@@ -355,24 +351,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCRemoteSwiftPackageReference section */
-		BD0000010000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/migueldeicaza/SwiftTerm.git";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
-/* End XCRemoteSwiftPackageReference section */
-
-/* Begin XCSwiftPackageProductDependency section */
-		BD0000020000000000000002 /* SwiftTerm */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = BD0000010000000000000001 /* XCRemoteSwiftPackageReference "SwiftTerm" */;
-			productName = SwiftTerm;
-		};
-/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 31844E2B2F7210B20074F7B7 /* Project object */;
 }
