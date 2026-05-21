@@ -177,12 +177,15 @@ class NotchWindow: NSPanel {
         guard let screen = NSScreen.builtIn else { return }
         let screenFrame = screen.frame
 
-        let targetWidth: CGFloat = notchWidth + 80
+        // Whisky Claude: never grow horizontally past the notch outline (avoids
+        // covering menu bar items in apps with long menus).
+        let targetWidth: CGFloat = notchWidth
+        let extraHeight: CGFloat = 22   // room for the mascot to hop down
         var targetFrame = NSRect(
             x: screenFrame.midX - targetWidth / 2,
-            y: screenFrame.maxY - notchHeight,
+            y: screenFrame.maxY - notchHeight - extraHeight,
             width: targetWidth,
-            height: notchHeight
+            height: notchHeight + extraHeight
         )
         if isHovered {
             targetFrame = applyHoverGrow(to: targetFrame)
@@ -327,7 +330,7 @@ class NotchWindow: NSPanel {
         // Check the notch area itself
         guard let screen = NSScreen.builtIn else { return }
         let screenFrame = screen.frame
-        let effectiveWidth = isExpanded ? notchWidth + 80 : notchWidth
+        let effectiveWidth = notchWidth
         let notchRect = NSRect(
             x: screenFrame.midX - effectiveWidth / 2,
             y: screenFrame.maxY - notchHeight,
@@ -366,7 +369,8 @@ class NotchWindow: NSPanel {
 
     // MARK: - Hover grow / shrink
 
-    private static let hoverGrowX: CGFloat = 0 + NotchPillView.earRadius * 2  // extra width for ear protrusions
+    // Whisky Claude: no horizontal grow on hover (keeps menu bar buttons accessible).
+    private static let hoverGrowX: CGFloat = 0
     private static let hoverGrowY: CGFloat = 2
 
     /// Applies hover grow offset to any frame.
@@ -409,7 +413,7 @@ class NotchWindow: NSPanel {
         pillContentHost?.rootView = NotchPillContent(isHovering: false)
         guard let screen = NSScreen.builtIn else { return }
         let screenFrame = screen.frame
-        let baseWidth = isExpanded ? notchWidth + 80 : notchWidth
+        let baseWidth = notchWidth
         let targetFrame = NSRect(
             x: screenFrame.midX - baseWidth / 2,
             y: screenFrame.maxY - notchHeight,
