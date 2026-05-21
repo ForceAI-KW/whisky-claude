@@ -7,6 +7,8 @@ extension Notification.Name {
     /// Fired whenever the AttentionState changes. Kept as "NotchStatusChanged"
     /// for backward-compat with any external integrators / install scripts.
     static let WhiskyClaudeNotchStatusChanged = Notification.Name("WhiskyClaudeNotchStatusChanged")
+    /// Fired when the user toggles the mascot visibility setting.
+    static let WhiskyClaudeMascotVisibilityChanged = Notification.Name("WhiskyClaudeMascotVisibilityChanged")
 }
 
 // MARK: - Attention kind

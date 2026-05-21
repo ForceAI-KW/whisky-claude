@@ -36,15 +36,25 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             case .taskCompleted:    SoundPlayer.shared.play("taskCompleted")
             case .working, .idle:   break
             }
-            // Floating mascot: pops in and bounces on attention/done events.
+            // Persistent mascot now runs idle animation forever; just trigger a bigger
+            // bounce overlay on attention/done.
             switch kind {
             case .waitingForInput:
-                self?.mascotWindow.show(kind: .attention)
+                self?.mascotWindow.triggerBounce(kind: .attention)
             case .taskCompleted:
-                self?.mascotWindow.show(kind: .done)
+                self?.mascotWindow.triggerBounce(kind: .done)
             case .working, .idle:
                 break
             }
+        }
+
+        // React to mascot visibility setting changes.
+        NotificationCenter.default.addObserver(
+            forName: .WhiskyClaudeMascotVisibilityChanged,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            self?.mascotWindow.applyVisibility(SettingsManager.shared.mascotVisible)
         }
 
         // 4. Clap detector (opt-in via Settings)

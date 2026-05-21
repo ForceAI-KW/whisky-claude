@@ -9,9 +9,13 @@ final class SoundPlayer {
 
     func play(_ name: String) {
         guard SettingsManager.shared.soundsEnabled else { return }
+
         if let cached = players[name] {
+            cached.stop()        // stop any in-flight playback
             cached.currentTime = 0
-            cached.play()
+            cached.volume = 1.0
+            let ok = cached.play()
+            if !ok { NSLog("[WhiskyClaude] SoundPlayer.play returned false for \(name)") }
             return
         }
         guard let url = Bundle.main.url(forResource: name, withExtension: "mp3") else {
@@ -21,8 +25,10 @@ final class SoundPlayer {
         do {
             let player = try AVAudioPlayer(contentsOf: url)
             player.prepareToPlay()
+            player.volume = 1.0
             players[name] = player
-            player.play()
+            let ok = player.play()
+            if !ok { NSLog("[WhiskyClaude] SoundPlayer.play returned false for new player \(name)") }
         } catch {
             NSLog("[WhiskyClaude] sound load failed for \(name): \(error)")
         }

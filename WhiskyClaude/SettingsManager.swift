@@ -4,6 +4,13 @@ import Foundation
 class SettingsManager {
     static let shared = SettingsManager()
 
+    var mascotVisible: Bool {
+        didSet {
+            UserDefaults.standard.set(mascotVisible, forKey: "mascotVisible")
+            NotificationCenter.default.post(name: .WhiskyClaudeMascotVisibilityChanged, object: nil)
+        }
+    }
+
     var soundsEnabled: Bool {
         didSet { UserDefaults.standard.set(soundsEnabled, forKey: "soundsEnabled") }
     }
@@ -42,11 +49,13 @@ class SettingsManager {
 
     init() {
         let defaults = UserDefaults.standard
+        if defaults.object(forKey: "mascotVisible") == nil { defaults.set(true, forKey: "mascotVisible") }
         if defaults.object(forKey: "soundsEnabled") == nil { defaults.set(true, forKey: "soundsEnabled") }
         if defaults.object(forKey: "clapTriggerEnabled") == nil { defaults.set(false, forKey: "clapTriggerEnabled") }
         if defaults.object(forKey: "clapSensitivity") == nil { defaults.set(0.5, forKey: "clapSensitivity") }
         if defaults.object(forKey: "wakeWordEnabled") == nil { defaults.set(false, forKey: "wakeWordEnabled") }
 
+        mascotVisible = defaults.bool(forKey: "mascotVisible")
         soundsEnabled = defaults.bool(forKey: "soundsEnabled")
         clapTriggerEnabled = defaults.bool(forKey: "clapTriggerEnabled")
         clapSensitivity = defaults.double(forKey: "clapSensitivity")

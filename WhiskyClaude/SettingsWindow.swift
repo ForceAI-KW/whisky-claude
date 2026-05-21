@@ -41,6 +41,13 @@ struct GeneralTab: View {
 
     var body: some View {
         Form {
+            Toggle(isOn: $settings.mascotVisible) {
+                Text("Show Claude mascot around the notch")
+                Text("A small Claude character lives just below your notch and idles gently. It bounces a bit harder when Claude Code wants your attention.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
+
             Toggle(isOn: $settings.soundsEnabled) {
                 Text("Play sound on Claude Code attention + completion")
                 Text("Audio fires when Claude Code's Notification or Stop hook triggers — uses your bundled custom MP3s.")
