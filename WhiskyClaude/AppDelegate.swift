@@ -24,6 +24,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         setupHotkey()
         // Detect in background so launch isn't blocked
         sessionStore.detectAllXcodeProjectsAsync()
+        EventWatcher.shared.start()
     }
 
     private func setupStatusItem() {

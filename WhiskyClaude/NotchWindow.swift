@@ -564,19 +564,21 @@ enum NotchDisplayState: Equatable {
     case waitingForInput
     case taskCompleted
 
-    /// Hierarchy: .taskCompleted (always shown) > .waitingForInput > .working > .idle
+    /// Hierarchy: external attention/done > session states > external working > .idle
     static var current: NotchDisplayState {
         guard SettingsManager.shared.claudeIntegrationEnabled else { return .idle }
         let sessions = SessionStore.shared.sessions
-        if sessions.contains(where: { $0.terminalStatus == .taskCompleted }) {
-            return .taskCompleted
-        }
-        if sessions.contains(where: { $0.terminalStatus == .waitingForInput }) {
-            return .waitingForInput
-        }
-        if sessions.contains(where: { $0.terminalStatus == .working }) {
-            return .working
-        }
+        let external = ExternalEventState.shared.current
+
+        // External "attention" and "done" take priority — they reflect explicit
+        // hook events from Claude Code sessions running outside this app.
+        if external == .waitingForInput { return .waitingForInput }
+        if external == .taskCompleted   { return .taskCompleted   }
+
+        if sessions.contains(where: { $0.terminalStatus == .taskCompleted   }) { return .taskCompleted   }
+        if sessions.contains(where: { $0.terminalStatus == .waitingForInput }) { return .waitingForInput }
+        if sessions.contains(where: { $0.terminalStatus == .working         }) { return .working         }
+        if external == .working { return .working }
         return .idle
     }
 }
