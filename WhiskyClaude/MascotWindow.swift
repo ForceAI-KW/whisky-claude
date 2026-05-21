@@ -27,9 +27,10 @@ final class MascotWindow: NSPanel {
     /// Visible logical size of the mascot.
     static let mascotSize: CGFloat = 32
 
-    /// Gap between the notch's left/right edge and the mascot when seated.
-    /// Small but non-zero so the mascot doesn't look glued to the notch.
-    static let seatGap: CGFloat = 6
+    /// Clear gap between the notch's left/right edge and the mascot when
+    /// seated. Big enough that the mascot reads as "beside the notch", not
+    /// "hugging the notch's corner".
+    static let seatGap: CGFloat = 50
 
     /// Vertical padding inside the window for the dancing shimmy / walking
     /// gait to render without clipping. Kept tight.
@@ -234,18 +235,20 @@ struct MascotContent: View {
         let breathScale: CGFloat = 1.0 + (1.0 + CGFloat(sin(t * 2 * .pi / 3.5))) * 0.009
 
         if cycle < s1 {
-            // DANCE LEFT
-            let danceX = sin(t * 2 * .pi * 3.5) * 3.0          // 3.5 Hz, ±3pt horizontal shimmy
-            let danceRot = sin(t * 2 * .pi * 2.0) * 9.0        // 2 Hz, ±9° rotation wobble
-            // Tiny secondary jitter in rotation to break the perfectly periodic feel
-            let microRot = sin(t * 2 * .pi * 7.3) * 2.0        // 7.3 Hz, ±2° flutter
-            // Scale "drop" on the beat — 1 Hz pulse: 1.0 .. 1.05
-            let beatScale: CGFloat = 1.0 + max(0, CGFloat(sin(t * 2 * .pi * 1.0))) * 0.05
+            // DANCE LEFT — calm Trump-style head nod + body sway.
+            // Two slow sine waves at slightly different frequencies so the
+            // body sway and head nod drift in and out of phase, producing
+            // an organic, never-quite-repeating sway. NO vertical bouncing,
+            // NO rapid shake — paced like someone swaying gently to music.
+            let sway = sin(t * 2 * .pi * 0.55) * 2.5           // 0.55 Hz, ±2.5pt
+            let nod  = sin(t * 2 * .pi * 0.45) * 4.5           // 0.45 Hz, ±4.5°
+            // Slight emphasis on each beat (~2s per beat) — barely visible scale tick.
+            let beatScale: CGFloat = 1.0 + max(0, CGFloat(sin(t * 2 * .pi * 0.5))) * 0.025
             return (
-                x: -seat + danceX,
+                x: -seat + sway,
                 y: 0,
                 scale: breathScale * beatScale,
-                rotation: danceRot + microRot
+                rotation: nod
             )
         } else if cycle < s2 {
             // WALK LEFT -> RIGHT
@@ -273,16 +276,15 @@ struct MascotContent: View {
                 rotation: lean
             )
         } else if cycle < s3 {
-            // DANCE RIGHT — same as LEFT but mirrored
-            let danceX = sin(t * 2 * .pi * 3.5) * 3.0
-            let danceRot = sin(t * 2 * .pi * 2.0) * 9.0
-            let microRot = sin(t * 2 * .pi * 7.3) * 2.0
-            let beatScale: CGFloat = 1.0 + max(0, CGFloat(sin(t * 2 * .pi * 1.0))) * 0.05
+            // DANCE RIGHT — same calm sway as LEFT, mirrored seat position.
+            let sway = sin(t * 2 * .pi * 0.55) * 2.5
+            let nod  = sin(t * 2 * .pi * 0.45) * 4.5
+            let beatScale: CGFloat = 1.0 + max(0, CGFloat(sin(t * 2 * .pi * 0.5))) * 0.025
             return (
-                x: seat + danceX,
+                x: seat + sway,
                 y: 0,
                 scale: breathScale * beatScale,
-                rotation: danceRot + microRot
+                rotation: nod
             )
         } else {
             // WALK RIGHT -> LEFT
