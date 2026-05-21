@@ -271,6 +271,7 @@
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "WhiskyClaude detects your active Xcode project to manage terminal sessions.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Whisky Claude can listen for a double-clap to open a Claude terminal session. Audio is analyzed locally on your Mac and is never recorded, stored, or sent anywhere.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Whisky Claude transcribes audio on-device to detect wake phrases like 'hey claude' or 'hey whisky'. Audio never leaves your Mac.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",
@@ -310,6 +311,7 @@
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "WhiskyClaude detects your active Xcode project to manage terminal sessions.";
 				INFOPLIST_KEY_NSHumanReadableCopyright = "";
 				INFOPLIST_KEY_NSMicrophoneUsageDescription = "Whisky Claude can listen for a double-clap to open a Claude terminal session. Audio is analyzed locally on your Mac and is never recorded, stored, or sent anywhere.";
+				INFOPLIST_KEY_NSSpeechRecognitionUsageDescription = "Whisky Claude transcribes audio on-device to detect wake phrases like 'hey claude' or 'hey whisky'. Audio never leaves your Mac.";
 				LD_RUNPATH_SEARCH_PATHS = (
 					"$(inherited)",
 					"@executable_path/../Frameworks",

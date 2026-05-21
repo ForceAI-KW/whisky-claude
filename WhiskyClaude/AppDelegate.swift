@@ -40,6 +40,12 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         if SettingsManager.shared.clapTriggerEnabled {
             ClapDetector.shared.start()
         }
+
+        // 5. Wake-word recognizer (opt-in via Settings)
+        KeywordRecognizer.shared.onWakeWord = { [weak self] in self?.openClaudeInTerminal() }
+        if SettingsManager.shared.wakeWordEnabled {
+            KeywordRecognizer.shared.start()
+        }
     }
 
     private func buildMenu() -> NSMenu {

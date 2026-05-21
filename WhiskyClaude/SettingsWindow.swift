@@ -60,7 +60,7 @@ struct VoiceTab: View {
         Form {
             Toggle(isOn: $settings.clapTriggerEnabled) {
                 Text("Double-clap to open Claude in Terminal")
-                Text("Uses Apple's on-device sound classifier (SoundAnalysis framework). Audio is analyzed locally on your Mac and is never recorded, stored, or sent anywhere. macOS will ask for microphone permission when you enable this.")
+                Text("Uses Apple's on-device sound classifier (SoundAnalysis framework). Audio is analyzed locally and never recorded, stored, or sent anywhere.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
@@ -76,6 +76,15 @@ struct VoiceTab: View {
                     }
                 }
             }
+
+            Divider().padding(.vertical, 4)
+
+            Toggle(isOn: $settings.wakeWordEnabled) {
+                Text("Say \"hey claude\" or \"hey whisky\" to open Claude in Terminal")
+                Text("Uses Apple's on-device Speech framework. Audio is transcribed locally on your Mac.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
@@ -85,9 +94,10 @@ struct VoiceTab: View {
 struct AboutTab: View {
     var body: some View {
         VStack(spacing: 10) {
-            Image(nsImage: NSApp.applicationIconImage)
+            Image("ClaudeLogo")
                 .resizable()
-                .frame(width: 64, height: 64)
+                .interpolation(.high)
+                .frame(width: 80, height: 80)
 
             Text("Whisky Claude")
                 .font(.title2.bold())

@@ -2,20 +2,21 @@ import AVFoundation
 import Foundation
 import SoundAnalysis
 
-/// Detects double-clap audio events using Apple's on-device SoundAnalysis
-/// classifier (`SNClassifierIdentifier.version1`). The classifier ships with
-/// macOS and runs entirely on-device — audio is never persisted, transmitted,
-/// or shared with Apple.
+/// Detects double-clap audio via Apple's on-device SoundAnalysis classifier
+/// (`SNClassifierIdentifier.version1`). Hooks into SharedMicCapture so it
+/// co-exists with the keyword recognizer.
 ///
-/// Two `clapping` (or `applause`) classifications above the sensitivity-driven
-/// confidence threshold, separated by 100-600ms, fire `onDoubleClap`.
+/// Key tuning decisions vs. v2.0:
+/// - overlapFactor = 0.5 so the classifier fires every ~500ms (was 0.0 = 1/s)
+/// - Gap window widened to 0.30-1.50s to match the new 500ms firing cadence
+/// - Threshold floor lowered: sensitivity 0..1 → 0.35..0.80 (was 0.5..0.9)
+/// - NSLog of every clap-identifier result for threshold tuning
 final class ClapDetector: NSObject {
     static let shared = ClapDetector()
 
     /// Fired on the main queue when a double-clap is detected.
     var onDoubleClap: (() -> Void)?
 
-    private let engine = AVAudioEngine()
     private var analyzer: SNAudioStreamAnalyzer?
     private var request: SNClassifySoundRequest?
     private let analysisQueue = DispatchQueue(label: "com.ahmadsharaf.WhiskyClaude.clapAnalysis")
@@ -23,43 +24,38 @@ final class ClapDetector: NSObject {
     private var isRunning = false
     private var lastClapAt: CFTimeInterval = 0
 
-    /// Min/max gap between two claps to count as a double-clap.
-    private let minGap: CFTimeInterval = 0.10
-    private let maxGap: CFTimeInterval = 0.60
+    /// SoundAnalysis fires classifications every ~500ms (overlapFactor 0.5)
+    /// from a 1-second sliding window. A real double-clap produces 2 consecutive
+    /// high-confidence results separated by roughly 0.5s. Allow 0.3-1.5s gap.
+    private let minGap: CFTimeInterval = 0.30
+    private let maxGap: CFTimeInterval = 1.50
 
-    /// Confidence threshold for a single clap classification.
-    /// Sensitivity 0 (lenient) → 0.5 ; sensitivity 1 (strict) → 0.9.
-    private var confidenceThreshold: Double = 0.7
+    /// Sensitivity 0..1 → confidence threshold 0.35 (lenient) ... 0.80 (strict).
+    private var confidenceThreshold: Double = 0.55
 
-    /// Sound classifier identifiers we accept as a "clap".
-    /// `clapping` is the primary single-clap identifier; `applause` is what
-    /// the classifier emits when many claps overlap (occasionally fires on a
-    /// solo two-hand clap with reverb — accepting both improves recall).
     private static let clapIdentifiers: Set<String> = ["clapping", "applause"]
+    private static let consumerId = "clap-detector"
 
     private override init() { super.init() }
 
     /// Maps 0..1 user-facing sensitivity to the Apple confidence threshold.
-    /// 0 = lenient (fires more readily, threshold 0.5).
-    /// 1 = strict  (fires only on very confident matches, threshold 0.9).
     func setSensitivity(_ s: Double) {
         let clamped = max(0, min(1, s))
-        confidenceThreshold = 0.5 + 0.4 * clamped
+        confidenceThreshold = 0.35 + 0.45 * clamped
     }
 
     func start() {
         guard !isRunning else { return }
-
-        let input = engine.inputNode
-        let format = input.outputFormat(forBus: 0)
-        guard format.sampleRate > 0, format.channelCount > 0 else {
-            NSLog("[WhiskyClaude] ClapDetector: input format unusable (sr=\(format.sampleRate), ch=\(format.channelCount))")
+        guard let format = SharedMicCapture.shared.inputFormat,
+              format.sampleRate > 0, format.channelCount > 0 else {
+            NSLog("[WhiskyClaude] ClapDetector: input format unusable")
             return
         }
 
         let streamAnalyzer = SNAudioStreamAnalyzer(format: format)
         do {
             let req = try SNClassifySoundRequest(classifierIdentifier: .version1)
+            req.overlapFactor = 0.5   // every 500ms, see last 1s of audio
             try streamAnalyzer.add(req, withObserver: self)
             self.analyzer = streamAnalyzer
             self.request = req
@@ -68,32 +64,25 @@ final class ClapDetector: NSObject {
             return
         }
 
-        // Buffer size 8192 ≈ 185ms at 44.1kHz — a balance between classifier
-        // latency (longer windows let the model see more context) and double-clap
-        // gap resolution (we need to distinguish 100-600ms gaps).
-        input.installTap(onBus: 0, bufferSize: 8192, format: format) { [weak self] buffer, time in
+        let ok = SharedMicCapture.shared.register(id: Self.consumerId) { [weak self] buffer, time in
             self?.analysisQueue.async {
                 self?.analyzer?.analyze(buffer, atAudioFramePosition: time.sampleTime)
             }
         }
-
-        do {
-            try engine.start()
-            isRunning = true
-            NSLog("[WhiskyClaude] ClapDetector started (SoundAnalysis, threshold=\(confidenceThreshold))")
-        } catch {
-            NSLog("[WhiskyClaude] engine.start() failed: \(error)")
-            input.removeTap(onBus: 0)
+        if !ok {
+            NSLog("[WhiskyClaude] ClapDetector: failed to register mic consumer")
             analyzer?.removeAllRequests()
             analyzer = nil
             request = nil
+            return
         }
+        isRunning = true
+        NSLog("[WhiskyClaude] ClapDetector started (threshold=\(confidenceThreshold))")
     }
 
     func stop() {
         guard isRunning else { return }
-        engine.inputNode.removeTap(onBus: 0)
-        engine.stop()
+        SharedMicCapture.shared.unregister(id: Self.consumerId)
         analyzer?.removeAllRequests()
         analyzer = nil
         request = nil
@@ -120,15 +109,17 @@ extension ClapDetector: SNResultsObserving {
     func request(_ request: SNRequest, didProduce result: SNResult) {
         guard let classification = result as? SNClassificationResult else { return }
 
+        // Log everything matching a clap identifier (helps tune threshold).
+        if let any = classification.classifications.first(where: { Self.clapIdentifiers.contains($0.identifier) }) {
+            NSLog("[WhiskyClaude] clap-detect: \(any.identifier) conf=\(String(format: "%.2f", any.confidence)) threshold=\(String(format: "%.2f", confidenceThreshold))")
+        }
+
         // Find the best matching clap-related identifier above the threshold.
         let hit = classification.classifications.first { c in
-            Self.clapIdentifiers.contains(c.identifier) &&
-                c.confidence >= confidenceThreshold
+            Self.clapIdentifiers.contains(c.identifier) && c.confidence >= confidenceThreshold
         }
         guard hit != nil else { return }
 
-        // SNResultsObserving callbacks run on the analyzer's queue. Bounce to
-        // main for state mutation + the user callback.
         DispatchQueue.main.async { [weak self] in
             self?.handleClapDetected()
         }
