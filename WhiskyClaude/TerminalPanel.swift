@@ -156,10 +156,6 @@ class TerminalPanel: NSPanel {
     }
 
     override func performKeyEquivalent(with event: NSEvent) -> Bool {
-        if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "s" {
-            sessionStore.createCheckpointForActiveSession()
-            return true
-        }
         if event.modifierFlags.contains(.command) && event.charactersIgnoringModifiers == "t" {
             sessionStore.createQuickSession()
             return true

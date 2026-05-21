@@ -27,16 +27,6 @@ class SessionStore {
     var isWindowFocused = true
     var isShowingDialog = false
 
-    /// The most recent checkpoint for the active session, used to show the undo button
-    var lastCheckpoint: Checkpoint?
-    /// Project name associated with lastCheckpoint
-    var lastCheckpointProjectName: String?
-    /// Project directory associated with lastCheckpoint
-    var lastCheckpointProjectDir: String?
-
-    /// Non-nil while a checkpoint operation is in progress (e.g. "Taking checkpoint…", "Restoring checkpoint…")
-    var checkpointStatus: String?
-
     /// Activity token to prevent macOS idle sleep while Claude is working
     private var sleepActivity: NSObjectProtocol?
 
@@ -211,89 +201,6 @@ class SessionStore {
         } else if !anyWorking, let activity = sleepActivity {
             ProcessInfo.processInfo.endActivity(activity)
             sleepActivity = nil
-        }
-    }
-
-    /// Close tab: removes the session entirely and dismisses the project from auto-detection
-    /// Refresh the lastCheckpoint for the active session
-    func refreshLastCheckpoint() {
-        guard let session = activeSession,
-              let dir = session.projectPath else {
-            lastCheckpoint = nil
-            lastCheckpointProjectName = nil
-            lastCheckpointProjectDir = nil
-            return
-        }
-        let projectDir = (dir as NSString).deletingLastPathComponent
-        let checkpoints = CheckpointManager.shared.checkpoints(for: session.projectName, in: projectDir)
-        lastCheckpoint = checkpoints.first
-        lastCheckpointProjectName = session.projectName
-        lastCheckpointProjectDir = projectDir
-    }
-
-    /// Restore the most recent checkpoint for the active session
-    func restoreLastCheckpoint() {
-        guard let checkpoint = lastCheckpoint,
-              let projectDir = lastCheckpointProjectDir else { return }
-        checkpointStatus = "Restoring checkpoint…"
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? CheckpointManager.shared.restoreCheckpoint(checkpoint, to: projectDir)
-            DispatchQueue.main.async {
-                self.checkpointStatus = nil
-                self.lastCheckpoint = nil
-            }
-        }
-    }
-
-    /// Create a checkpoint with progress status
-    func createCheckpointForActiveSession() {
-        guard let session = activeSession,
-              let dir = session.projectPath else { return }
-        let projectDir = (dir as NSString).deletingLastPathComponent
-        let projectName = session.projectName
-        checkpointStatus = "Saving checkpoint…"
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? CheckpointManager.shared.createCheckpoint(projectName: projectName, projectDirectory: projectDir)
-            DispatchQueue.main.async {
-                self.refreshLastCheckpoint()
-                self.checkpointStatus = nil
-            }
-        }
-    }
-
-    /// Create a checkpoint for a specific session by ID
-    func createCheckpoint(for sessionId: UUID) {
-        guard let session = sessions.first(where: { $0.id == sessionId }),
-              let dir = session.projectPath else { return }
-        let projectDir = (dir as NSString).deletingLastPathComponent
-        let projectName = session.projectName
-        checkpointStatus = "Saving checkpoint…"
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? CheckpointManager.shared.createCheckpoint(projectName: projectName, projectDirectory: projectDir)
-            DispatchQueue.main.async {
-                self.refreshLastCheckpoint()
-                self.checkpointStatus = nil
-            }
-        }
-    }
-
-    /// Sessions that have a project path (eligible for checkpoints)
-    var checkpointEligibleSessions: [TerminalSession] {
-        sessions.filter { $0.projectPath != nil }
-    }
-
-    /// Restore a specific checkpoint for a session
-    func restoreCheckpoint(_ checkpoint: Checkpoint, for sessionId: UUID) {
-        guard let session = sessions.first(where: { $0.id == sessionId }),
-              let dir = session.projectPath else { return }
-        let projectDir = (dir as NSString).deletingLastPathComponent
-        checkpointStatus = "Restoring checkpoint…"
-        DispatchQueue.global(qos: .userInitiated).async {
-            try? CheckpointManager.shared.restoreCheckpoint(checkpoint, to: projectDir)
-            DispatchQueue.main.async {
-                self.checkpointStatus = nil
-                self.refreshLastCheckpoint()
-            }
         }
     }
 

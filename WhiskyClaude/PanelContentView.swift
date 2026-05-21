@@ -34,7 +34,6 @@ struct PanelContentView: View {
     @Bindable var sessionStore: SessionStore
     var onClose: () -> Void
     var onToggleExpand: (() -> Void)?
-    @State private var showRestoreConfirmation = false
 
     private var foregroundOpacity: Double {
         sessionStore.isWindowFocused ? 1.0 : 0.6
@@ -113,74 +112,6 @@ struct PanelContentView: View {
             .padding(.horizontal, 12)
             .background(Color(nsColor: NSColor(white: 0.14, alpha: 1.0)).opacity(chromeBackgroundOpacity))
 
-            if sessionStore.isTerminalExpanded, sessionStore.checkpointStatus != nil || sessionStore.lastCheckpoint != nil {
-                HStack(spacing: 6) {
-                    if let status = sessionStore.checkpointStatus {
-                        Image(systemName: "progress.indicator")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text(status)
-                            .font(.system(size: 11, weight: .medium))
-                        Spacer()
-                        Button {
-                            showRestoreConfirmation = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                Text("Restore last checkpoint")
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(Color(nsColor: NSColor(white: 0.18, alpha: 1.0)))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.white.opacity(0.8))
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .padding(.trailing, 6)
-                        .opacity(0)
-                        
-                    } else if let checkpoint = sessionStore.lastCheckpoint {
-                        Image(systemName: "bookmark.fill")
-                            .font(.system(size: 10, weight: .semibold))
-                        Text("Checkpoint Saved")
-                            .font(.system(size: 11, weight: .medium))
-                        Text(checkpoint.displayName)
-                            .font(.system(size: 10))
-                            .foregroundColor(.white.opacity(0.5))
-
-                        Spacer()
-
-                        Button {
-                            showRestoreConfirmation = true
-                        } label: {
-                            HStack(spacing: 4) {
-                                Image(systemName: "clock.arrow.circlepath")
-                                Text("Restore last checkpoint")
-                            }
-                        }
-                        .buttonStyle(.plain)
-                        .font(.system(size: 10, weight: .medium))
-                        .foregroundColor(Color(nsColor: NSColor(white: 0.18, alpha: 1.0)))
-                        .padding(.horizontal, 8)
-                        .padding(.vertical, 3)
-                        .background(Color.white.opacity(0.8))
-                        .clipShape(RoundedRectangle(cornerRadius: 5))
-                        .padding(.trailing, 6)
-
-                        Button(action: { sessionStore.lastCheckpoint = nil }) {
-                            Image(systemName: "xmark")
-                                .font(.system(size: 9, weight: .bold))
-                        }
-                        .buttonStyle(.plain)
-                        .foregroundColor(.white.opacity(0.4))
-                    }
-                }
-                .padding(.horizontal, 12)
-                .padding(.vertical, 6)
-                .background(Color(nsColor: NSColor(white: 0.18, alpha: 1.0)).opacity(chromeBackgroundOpacity))
-                .foregroundColor(.white.opacity(0.8))
-            }
-
             if sessionStore.isTerminalExpanded {
                 Divider()
 
@@ -210,24 +141,9 @@ struct PanelContentView: View {
         .background(Color(nsColor: NSColor(white: 0.1, alpha: 1.0)).opacity(chromeBackgroundOpacity))
         .clipShape(UnevenRoundedRectangle(topLeadingRadius: 8.5, bottomLeadingRadius: 0, bottomTrailingRadius: 0, topTrailingRadius: 8.5))
         .onAppear {
-            sessionStore.refreshLastCheckpoint()
             if sessionStore.sessions.isEmpty {
                 sessionStore.createQuickSession()
             }
-        }
-        .onChange(of: sessionStore.activeSessionId) {
-            sessionStore.refreshLastCheckpoint()
-        }
-        .onChange(of: showRestoreConfirmation) {
-            sessionStore.isShowingDialog = showRestoreConfirmation
-        }
-        .alert("Restore last checkpoint", isPresented: $showRestoreConfirmation) {
-            Button("Restore last checkpoint", role: .destructive) {
-                sessionStore.restoreLastCheckpoint()
-            }
-            Button("Cancel", role: .cancel) {}
-        } message: {
-            Text("This will overwrite your current working directory with the checkpoint. Are you sure?")
         }
         .onReceive(NotificationCenter.default.publisher(for: NSWindow.didBecomeKeyNotification)) { notification in
             if notification.object is TerminalPanel {

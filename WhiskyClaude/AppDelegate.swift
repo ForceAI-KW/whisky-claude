@@ -245,20 +245,6 @@ class AppDelegate: NSObject, NSApplicationDelegate {
         showPanelBelowStatusItem()
     }
 
-    @objc private func createCheckpoint(_ sender: NSMenuItem) {
-        guard let sessionId = sender.representedObject as? UUID else { return }
-        sessionStore.createCheckpoint(for: sessionId)
-    }
-
-    @objc private func restoreLastCheckpoint(_ sender: NSMenuItem) {
-        guard let sessionId = sender.representedObject as? UUID,
-              let session = sessionStore.sessions.first(where: { $0.id == sessionId }),
-              let dir = session.projectPath else { return }
-        let projectDir = (dir as NSString).deletingLastPathComponent
-        guard let latest = CheckpointManager.shared.checkpoints(for: session.projectName, in: projectDir).first else { return }
-        sessionStore.restoreCheckpoint(latest, for: sessionId)
-    }
-
     @objc private func openSettings() {
         SettingsWindowController.shared.show { [weak self] showNotch in
             guard let self else { return }
