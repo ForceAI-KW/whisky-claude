@@ -141,29 +141,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
         // If Terminal already has at least one window open, create a NEW TAB
-        // inside the front window via Cmd+T then run `claude` in it. Otherwise
-        // (no windows) just do a plain `do script`, which opens a fresh window.
+        // inside the FRONT window via Cmd+T, then run `claude` in that tab.
+        // Otherwise (no windows) just `do script`, which opens a fresh window.
         //
         // Terminal.app's AppleScript dictionary has no first-class "new tab in
         // window" command — the standard workaround is to keystroke Cmd+T via
-        // System Events, then aim `do script` at the (now-current) front window.
-        // This requires the System Events automation permission. We already need
-        // it for the Login Item registration in install.sh, so users have
-        // typically granted it. If they haven't, the script still falls through
-        // to the no-windows branch (a new window) rather than failing silently.
+        // System Events. The keystroke goes to whichever window is currently
+        // focused (Terminal's `front window`), so we MUST aim `do script` at
+        // `front window` too — not `window 1` — otherwise the keystroke and
+        // `do script` can target different windows when more than one is open.
+        //
+        // We grab a reference to `front window` BEFORE the keystroke so even
+        // if focus shifts during the delay we still write to the right window.
+        // Requires the System Events automation permission (already required
+        // for Login Item registration in install.sh).
         let script = """
         tell application "Terminal"
             activate
             if (count of windows) is 0 then
                 do script "cd '\(home)' && claude"
             else
+                set targetWindow to front window
                 tell application "System Events"
                     tell process "Terminal"
                         keystroke "t" using {command down}
                     end tell
                 end tell
                 delay 0.25
-                do script "cd '\(home)' && claude" in window 1
+                do script "cd '\(home)' && claude" in targetWindow
             end if
         end tell
         """
