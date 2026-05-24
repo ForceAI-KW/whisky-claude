@@ -58,6 +58,43 @@ See `docs/plans/2026-05-21-whisky-claude-fork.md` for the implementation plan. A
 - **SwiftTerm** (`migueldeicaza/SwiftTerm`) — terminal emulator view (`LocalProcessTerminalView`)
 - (Task 7 adds AVFoundation usage for clap detection — already linked.)
 
-## Entitlements
+## Entitlements + TCC permissions
 
-The app requires `com.apple.security.automation.apple-events` for AppleScript communication with Xcode. Task 7 adds `NSMicrophoneUsageDescription` for the clap detector.
+The app requires `com.apple.security.automation.apple-events` for AppleScript communication with Xcode + Terminal. Task 7 adds `NSMicrophoneUsageDescription` for the clap detector.
+
+**Accessibility (TCC) — runtime grant, NOT an entitlement:** opening Terminal as a new TAB in the existing window uses `tell application "System Events" to keystroke "t" using {command down}`. Keyboard event injection is gated by Privacy → Accessibility, a separate TCC bucket from Privacy → Automation. `AppDelegate.openClaudeInTerminal` checks `AXIsProcessTrusted()` and:
+- if trusted → runs the keystroke-based "new tab in front window" path
+- if not → falls back to plain `do script` (new window) AND shows a one-shot NSAlert with an "Open Settings" deep-link to Privacy & Security → Accessibility
+
+Each `./scripts/install.sh` replaces the binary with a new ad-hoc signature, which invalidates the Accessibility grant. Users must re-grant after every install. This is documented in README "Requirements".
+
+## Standing rules from global config (cross-project)
+
+These are enforced globally in `~/.claude/CLAUDE.md`. Summarized here for
+contributors who don't have access to the global config. Read the source file
+for the full context.
+
+1. **Memory pipeline after every commit** — `nohup ~/.claude/scripts/update-memory-pipeline.sh all` fires after each commit. Not optional.
+   Reference: `~/.claude/projects/-Users-ahmadsharaf/memory/MEMORY.md`
+
+2. **Scoped memory = source of truth, MEMORY.md = index** — detailed lessons live in `feedback-*.md` / `project-*.md` files; MEMORY.md is the pointer table.
+   Reference: `~/.claude/projects/-Users-ahmadsharaf/memory/MEMORY.md`
+
+3. **Fix everything, no "non-blocking ignored" category** — warnings and lint errors are treated as failures.
+   Reference: `~/.claude/projects/-Users-ahmadsharaf/memory/feedback-ai-security-checklist.md`
+
+4. **Never defer a task unless Ahmad explicitly asks** — don't leave partial work or TODOs without a signal.
+
+5. **Session auto-config** — Remote Control auto-starts, session names to `basename($PWD)`.
+
+6. **Documentation parity** — every feature ships with docs in the same session (local commit + remote push).
+   Reference: `~/.claude/CLAUDE.md` §"Plan-before-code for big changes"
+
+7. **Multi-step Redis sentinel for reminders** — stepped reminder queues (e.g. cart abandoned 1h/4h/24h cadence) use Redis sentinel keys to track which step fired, not simple TTL locks.
+   Reference: `~/.claude/projects/-Users-ahmadsharaf-Desktop-projects-force-website-builder/memory/`
+
+8. **Discoverability status-chip pattern for buried features** — any feature with a toggle buried 3+ taps deep MUST surface its state on the Settings overview card (e.g. "DM ordering: ON/OFF" chip on the WhatsApp connection card).
+   Reference: commit `917a268a` (FWB)
+
+9. **Version-agnostic lookup for externally-versioned names** — Meta template names can be renamed via Reset-to-Draft. Dropdowns must resolve by base-name match (strip `_v2`, `_v3` suffixes) not exact-name lookup.
+   Reference: commit `1507ef67` (FWB)

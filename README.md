@@ -92,6 +92,7 @@ More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - macOS 13 or later (tested on macOS 26)
 - A MacBook with a notch is ideal; works on un-notched Macs too (mascot anchors to menu bar bottom)
 - For slap detection + wake words: microphone + Speech Recognition permission (macOS prompts on first use)
+- **To open Terminal as a new tab in your existing window** (vs. a new window every time): Accessibility permission. The first time you click "Open Claude in Terminal" / slap / say the wake word, Whisky Claude shows a one-shot dialog with a button that deep-links to System Settings → Privacy & Security → Accessibility. Without it, Terminal still opens — just as a new window. The new build's signature changes each reinstall, so you'll need to re-grant after every `./scripts/install.sh`.
 
 ## Settings
 

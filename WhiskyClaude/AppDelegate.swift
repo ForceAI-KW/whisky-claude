@@ -1,4 +1,5 @@
 import AppKit
+import ApplicationServices
 import Foundation
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
@@ -12,6 +13,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     /// slaps or three "hey whisky"s only open ONE Terminal session.
     private var lastOpenedAt: CFTimeInterval = 0
     private let openDebounceInterval: CFTimeInterval = 5.0
+
+    /// One-shot guard so the missing-Accessibility alert only fires once
+    /// per launch (the trigger callbacks can fire many times in a row).
+    private var didShowAccessibilityAlert = false
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[WhiskyClaude] launched")
@@ -79,6 +84,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         // 6. Hold off system idle sleep (default ON via Settings).
         SleepBlocker.shared.applySetting(SettingsManager.shared.preventSleep)
+
+        // 7. Log Accessibility-trust state so the diagnostic shows up in
+        // Console.app right after launch — useful for forkers who haven't
+        // granted the permission yet. The actual prompt is deferred to the
+        // first Open-in-Terminal attempt so users don't get pestered if
+        // they never use that path.
+        NSLog("[WhiskyClaude] AXIsProcessTrusted=\(AXIsProcessTrusted())")
     }
 
     func applicationWillTerminate(_ notification: Notification) {
@@ -140,46 +152,147 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
-        // If Terminal already has at least one window open, create a NEW TAB
-        // inside the FRONT window via Cmd+T, then run `claude` in that tab.
-        // Otherwise (no windows) just `do script`, which opens a fresh window.
+
+        // Two AppleScript variants — keystroke path needs Accessibility, plain
+        // `do script` path does not. Pick based on whether Terminal already has
+        // a window AND whether we have Accessibility trust. If we'd need to
+        // keystroke but can't, fall back to opening a new window (so the user
+        // still gets a Claude session) AND surface the permission gap via an
+        // alert + Settings deep-link, exactly once per launch.
         //
-        // Terminal.app's AppleScript dictionary has no first-class "new tab in
-        // window" command — the standard workaround is to keystroke Cmd+T via
-        // System Events. The keystroke goes to whichever window is currently
-        // focused (Terminal's `front window`), so we MUST aim `do script` at
-        // `front window` too — not `window 1` — otherwise the keystroke and
-        // `do script` can target different windows when more than one is open.
-        //
-        // We grab a reference to `front window` BEFORE the keystroke so even
-        // if focus shifts during the delay we still write to the right window.
-        // Requires the System Events automation permission (already required
-        // for Login Item registration in install.sh).
-        let script = """
-        tell application "Terminal"
-            activate
-            if (count of windows) is 0 then
-                do script "cd '\(home)' && claude"
-            else
-                set targetWindow to front window
-                tell application "System Events"
-                    tell process "Terminal"
-                        keystroke "t" using {command down}
+        // Why Accessibility, not Automation: `System Events keystroke` is a
+        // keyboard event injection. That's gated by Privacy → Accessibility,
+        // a separate TCC bucket from Privacy → Automation (which only covers
+        // `tell application "X"` Apple Events). The two are commonly conflated;
+        // grant'ing Automation alone does not unlock keystrokes.
+        let trusted = AXIsProcessTrusted()
+        let useKeystroke = trusted   // only attempt the new-tab path if we can
+
+        let script: String
+        if useKeystroke {
+            // New-tab-in-front-window path. We grab `front window` BEFORE the
+            // keystroke so even if focus shifts during the delay we still write
+            // to the intended window (see whisky-claude-applescript-front-window-not-window-1
+            // memory). `do script ... in <window>` runs in the new tab because
+            // Cmd+T makes the new tab the front tab of that window.
+            script = """
+            tell application "Terminal"
+                activate
+                if (count of windows) is 0 then
+                    do script "cd '\(home)' && claude"
+                else
+                    set targetWindow to front window
+                    tell application "System Events"
+                        tell process "Terminal"
+                            keystroke "t" using {command down}
+                        end tell
                     end tell
-                end tell
-                delay 0.25
-                do script "cd '\(home)' && claude" in targetWindow
-            end if
-        end tell
-        """
+                    delay 0.25
+                    do script "cd '\(home)' && claude" in targetWindow
+                end if
+            end tell
+            """
+        } else {
+            // Degraded path: open a fresh window. Still functional, just not
+            // the "new tab in existing window" UX Ahmad wants.
+            script = """
+            tell application "Terminal"
+                activate
+                do script "cd '\(home)' && claude"
+            end tell
+            """
+        }
+
         var error: NSDictionary?
         guard let appleScript = NSAppleScript(source: script) else {
             NSLog("[WhiskyClaude] failed to create AppleScript")
+            showOpenTerminalAlert(title: "Couldn't open Terminal",
+                                  message: "Whisky Claude couldn't build the AppleScript that launches Terminal. This is a bug — please file an issue.")
             return
         }
-        appleScript.executeAndReturnError(&error)
+        let result = appleScript.executeAndReturnError(&error)
         if let error {
             NSLog("[WhiskyClaude] AppleScript error: \(error)")
+            handleAppleScriptError(error)
+            return
+        }
+        _ = result
+
+        if !trusted && !didShowAccessibilityAlert {
+            // The fallback ran successfully (new window opened), but the user
+            // asked for a new tab. Tell them once how to upgrade the UX.
+            didShowAccessibilityAlert = true
+            showAccessibilityAlert()
+        }
+    }
+
+    /// Inspect an NSAppleScript error and route to the right user-visible message.
+    /// Surfaces the silent-failure modes that previously only hit NSLog.
+    private func handleAppleScriptError(_ error: NSDictionary) {
+        // -1743 = errAEEventNotPermitted (Automation denied for target app)
+        // -1719 = errAEAccessorNotFound (window vanished mid-script)
+        //  1002 = "not allowed to send keystrokes" (Accessibility denied)
+        let code = (error[NSAppleScript.errorNumber] as? NSNumber)?.intValue ?? 0
+        switch code {
+        case 1002:
+            if !didShowAccessibilityAlert {
+                didShowAccessibilityAlert = true
+                showAccessibilityAlert()
+            }
+        case -1743:
+            showOpenTerminalAlert(
+                title: "Terminal automation blocked",
+                message: "macOS blocked Whisky Claude from automating Terminal.app. Open System Settings → Privacy & Security → Automation and enable 'Terminal' under Whisky Claude.",
+                openPanel: "Privacy_Automation")
+        default:
+            let raw = (error[NSAppleScript.errorMessage] as? String) ?? "Unknown AppleScript error (\(code))."
+            showOpenTerminalAlert(title: "Couldn't open Terminal", message: raw)
+        }
+    }
+
+    /// User-facing alert with a button that deep-links to System Settings →
+    /// Privacy & Security → Accessibility so the user can grant the
+    /// permission without hunting through Settings.
+    private func showAccessibilityAlert() {
+        showOpenTerminalAlert(
+            title: "Grant Accessibility to open Terminal in a new tab",
+            message: """
+            Whisky Claude needs Accessibility permission to send Cmd+T to Terminal so it can open a new tab inside your existing window (instead of a fresh window every time).
+
+            Open System Settings → Privacy & Security → Accessibility and enable Whisky Claude. You'll only need to do this once.
+            """,
+            openPanel: "Privacy_Accessibility")
+    }
+
+    /// Generic NSAlert helper with an optional "Open Settings" button.
+    /// `openPanel` is the System Settings deep-link anchor (e.g.
+    /// `Privacy_Accessibility`, `Privacy_Automation`). nil hides the button.
+    private func showOpenTerminalAlert(title: String, message: String, openPanel: String? = nil) {
+        // Ensure we're on the main thread — slap/wake-word callbacks can fire
+        // off audio queues.
+        if !Thread.isMainThread {
+            DispatchQueue.main.async { [weak self] in
+                self?.showOpenTerminalAlert(title: title, message: message, openPanel: openPanel)
+            }
+            return
+        }
+        let alert = NSAlert()
+        alert.messageText = title
+        alert.informativeText = message
+        alert.alertStyle = .warning
+        if let openPanel {
+            alert.addButton(withTitle: "Open Settings")
+        }
+        alert.addButton(withTitle: "OK")
+
+        // Bring the alert to the front even though we're an LSUIElement app —
+        // otherwise the user might never see it.
+        NSApp.activate(ignoringOtherApps: true)
+        let response = alert.runModal()
+        if let openPanel, response == .alertFirstButtonReturn {
+            if let url = URL(string: "x-apple.systempreferences:com.apple.preference.security?\(openPanel)") {
+                NSWorkspace.shared.open(url)
+            }
         }
     }
 
