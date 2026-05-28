@@ -1,14 +1,18 @@
 #!/bin/bash
 # Whisky Claude — end-to-end installer.
 # 1. Build Release
-# 2. Ad-hoc codesign
+# 2. Codesign with stable self-signed identity if present (else ad-hoc fallback)
 # 3. Copy to /Applications/Whisky Claude.app
 # 4. Install pet-event helper + Claude Code hooks
 # 5. Register as a Login Item
 # Idempotent — safe to re-run.
 
+INSTALLER_VERSION="1.2.0"
+
 set -euo pipefail
 cd "$(dirname "$0")/.."
+
+echo "Whisky Claude installer v${INSTALLER_VERSION}"
 
 PROJECT="WhiskyClaude.xcodeproj"
 SCHEME="WhiskyClaude"
@@ -34,8 +38,17 @@ fi
 rm -rf "$RENAMED_APP"
 cp -R "$SOURCE_APP" "$RENAMED_APP"
 
-echo "→ ad-hoc codesign"
-codesign --force --deep --sign - "$RENAMED_APP"
+echo "→ codesign"
+# Use stable self-signed identity if present so the binary's designated
+# requirement (and therefore TCC grants like Accessibility) survive reinstalls.
+# Falls back to ad-hoc if the cert was removed from the keychain.
+SIGN_ID="Ahmad Sharaf Code Signing"
+if security find-certificate -c "$SIGN_ID" ~/Library/Keychains/login.keychain-db >/dev/null 2>&1; then
+    codesign --force --deep --sign "$SIGN_ID" "$RENAMED_APP"
+else
+    echo "  (cert '$SIGN_ID' not found — falling back to ad-hoc; TCC grants will reset)"
+    codesign --force --deep --sign - "$RENAMED_APP"
+fi
 
 echo "→ installing to /Applications"
 # Quit the running instance, if any.

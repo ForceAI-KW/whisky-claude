@@ -170,25 +170,34 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let script: String
         if useKeystroke {
-            // New-tab-in-front-window path. We grab `front window` BEFORE the
-            // keystroke so even if focus shifts during the delay we still write
-            // to the intended window (see whisky-claude-applescript-front-window-not-window-1
-            // memory). `do script ... in <window>` runs in the new tab because
-            // Cmd+T makes the new tab the front tab of that window.
+            // New-tab-in-front-window path. Two-step: (1) Cmd+T to open a new
+            // tab in Terminal's frontmost window — the new tab takes keyboard
+            // focus immediately. (2) Type the command as keystrokes into that
+            // focused tab, then press Return.
+            //
+            // Why not `do script "cmd" in <window>` / `in selected tab of <window>`:
+            // Terminal's AppleScript model resolves both to tab 1, not the
+            // newly-created tab, so the command leaks into the source tab
+            // (verified 2026-05-28). Sending keystrokes is deterministic — they
+            // land in whatever has keyboard focus, which is the new tab.
+            //
+            // No-window edge case: `do script "cmd"` (no `in` clause) creates a
+            // fresh Terminal window AND runs the command in it.
             script = """
+            tell application "Terminal" to activate
+            delay 0.15
             tell application "Terminal"
-                activate
                 if (count of windows) is 0 then
                     do script "cd '\(home)' && claude"
                 else
-                    set targetWindow to front window
                     tell application "System Events"
                         tell process "Terminal"
                             keystroke "t" using {command down}
+                            delay 0.35
+                            keystroke "cd '\(home)' && claude"
+                            key code 36
                         end tell
                     end tell
-                    delay 0.25
-                    do script "cd '\(home)' && claude" in targetWindow
                 end if
             end tell
             """
