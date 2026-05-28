@@ -40,12 +40,21 @@ cd whisky-claude
 ```
 
 The installer:
-1. Builds the Release config with ad-hoc codesign (no Apple Developer account required)
-2. Copies the app to `/Applications/Whisky Claude.app`
-3. Installs the Claude Code hook helper to `~/.claude/scripts/wc-event.sh`
-4. Wires the 4 hooks (`Stop`, `Notification`, `PreToolUse`, `UserPromptSubmit`) into `~/.claude/settings.json` — safely, preserving any other hooks you already have
-5. Registers as a macOS Login Item so it auto-starts at login
-6. Cleans up build artifacts so they don't appear as duplicate apps in Spotlight
+1. Builds the Release config and signs with a stable self-signed certificate if one is installed in your login keychain (falls back to ad-hoc otherwise — see [Persistent permissions](#persistent-permissions) below)
+2. Detects a change of signing identity vs the previously-installed copy and resets stale TCC grants only when needed
+3. Copies the app to `/Applications/Whisky Claude.app`
+4. Installs the Claude Code hook helper to `~/.claude/scripts/wc-event.sh`
+5. Wires the 4 hooks (`Stop`, `Notification`, `PreToolUse`, `UserPromptSubmit`) into `~/.claude/settings.json` — safely, preserving any other hooks you already have
+6. Registers as a macOS Login Item so it auto-starts at login
+7. Cleans up build artifacts so they don't appear as duplicate apps in Spotlight
+
+### Persistent permissions (v1.2.0+)
+
+By default `./scripts/install.sh` ad-hoc-signs the binary, which means every reinstall produces a new code signature — and macOS keys TCC grants (Accessibility, Microphone, Speech Recognition) to that signature. Result: you re-grant after every reinstall.
+
+To make grants survive reinstalls, drop a stable self-signed code-signing certificate into your login keychain named **"Ahmad Sharaf Code Signing"** (rename to taste; just update the `SIGN_ID` variable in `scripts/install.sh` to match). One-time setup with OpenSSL + `security import` — recipe in [docs/STABLE_CODESIGN.md](docs/STABLE_CODESIGN.md) (TBD; see commit history for the full procedure). Once installed, every future `./scripts/install.sh` keeps the same Designated Requirement and your grants persist forever.
+
+The installer also handles the migration: if you've already installed Whisky Claude with ad-hoc signing and then add a stable cert, the next install detects the DR change and calls `tccutil reset` for every relevant TCC bucket so you get one clean round of prompts. From then on, no more re-grants.
 
 ### Uninstall
 
@@ -92,7 +101,7 @@ More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 - macOS 13 or later (tested on macOS 26)
 - A MacBook with a notch is ideal; works on un-notched Macs too (mascot anchors to menu bar bottom)
 - For slap detection + wake words: microphone + Speech Recognition permission (macOS prompts on first use)
-- **To open Terminal as a new tab in your existing window** (vs. a new window every time): Accessibility permission. The first time you click "Open Claude in Terminal" / slap / say the wake word, Whisky Claude shows a one-shot dialog with a button that deep-links to System Settings → Privacy & Security → Accessibility. Without it, Terminal still opens — just as a new window. The new build's signature changes each reinstall, so you'll need to re-grant after every `./scripts/install.sh`.
+- **To open Terminal as a new tab in your existing window** (vs. a new window every time): Accessibility permission. The first time you click "Open Claude in Terminal" / slap / say the wake word, Whisky Claude shows a one-shot dialog with a button that deep-links to System Settings → Privacy & Security → Accessibility. Without it, Terminal still opens — just as a new window. With ad-hoc signing the binary's signature changes on every reinstall (you'd re-grant each time); see [Persistent permissions](#persistent-permissions) above for the stable-cert setup that fixes this once and for all.
 
 ## Settings
 
