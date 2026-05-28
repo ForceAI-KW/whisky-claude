@@ -7,7 +7,7 @@
 # 5. Register as a Login Item
 # Idempotent — safe to re-run.
 
-INSTALLER_VERSION="1.2.0"
+INSTALLER_VERSION="1.2.1"
 
 set -euo pipefail
 cd "$(dirname "$0")/.."
@@ -55,6 +55,29 @@ echo "→ installing to /Applications"
 osascript -e "tell application \"${TARGET_NAME}\" to quit" 2>/dev/null || true
 osascript -e "tell application \"WhiskyClaude\" to quit" 2>/dev/null || true
 sleep 0.5
+
+# If the previously-installed binary was signed with a DIFFERENT identity
+# (e.g. ad-hoc → stable cert, or rotating certs), stale TCC grants keyed to
+# the old designated requirement will silently fail at runtime — the WORST
+# case is SFSpeechRecognizer infinite-looping on permission denial, which
+# starves the SoundPlayer + file-watcher off the main queue and the user
+# perceives the app as "broken" with no error. So: compare DRs, reset only
+# when they differ, otherwise let grants persist (the whole point of the
+# stable cert).
+NEW_DR=$(codesign -d -r- "$RENAMED_APP" 2>&1 | sed -n 's/^designated => //p')
+OLD_DR=""
+if [ -d "$INSTALL_PATH" ]; then
+    OLD_DR=$(codesign -d -r- "$INSTALL_PATH" 2>&1 | sed -n 's/^designated => //p')
+fi
+if [ -n "$OLD_DR" ] && [ "$OLD_DR" != "$NEW_DR" ]; then
+    echo "→ signing identity changed — resetting TCC grants so they re-bind"
+    BUNDLE_ID=$(plutil -extract CFBundleIdentifier raw "$RENAMED_APP/Contents/Info.plist" 2>/dev/null || echo "com.ahmadsharaf.WhiskyClaude")
+    for service in Accessibility AppleEvents Microphone SpeechRecognition ScreenCapture InputMonitoring AudioCapture; do
+        tccutil reset "$service" "$BUNDLE_ID" >/dev/null 2>&1 || true
+    done
+    echo "  (you'll be prompted once for each permission on first launch — grants will persist after that)"
+fi
+
 rm -rf "$INSTALL_PATH"
 cp -R "$RENAMED_APP" "$INSTALL_PATH"
 
