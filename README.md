@@ -18,7 +18,6 @@ When you run `claude` in any terminal — Terminal.app, iTerm, Warp, whatever �
 
 Plus:
 
-- **Slap the Mac** to open a new Claude terminal session — single firm tap on the lid, desk, or palm-rest. Detected on-device via Apple's `SoundAnalysis` framework.
 - **"Hey Claude" / "Hey Whisky"** wake words — on-device via Apple's `Speech` framework. Audio never leaves your Mac.
 - **Pick your own sounds** — Settings → General lets you replace the bundled attention + done audio with any local file (`.mp3` / `.wav` / `.m4a` / `.aiff` / `.caf`). Preview button next to each picker so you can audition before saving.
 - **Keeps your Mac awake** so long-running Claude Code sessions don't get interrupted by system idle sleep. (Display sleep still respected.)
@@ -27,7 +26,7 @@ Plus:
 ## Privacy
 
 - **No network calls.** Everything runs locally.
-- **Microphone audio** (used only when the slap detector or wake-word recognizer is enabled — both **off by default**) is analyzed in-buffer and immediately discarded. It is never saved to disk, never sent anywhere.
+- **Microphone audio** (used only when the wake-word recognizer is enabled — **off by default**) is analyzed in-buffer and immediately discarded. It is never saved to disk, never sent anywhere.
 - **Claude Code hooks** write event payloads to `~/.claude/pet-events/`. Each event is consumed within milliseconds and deleted.
 - Sandboxing intentionally disabled — needs to read `~/.claude/pet-events/` and post an `IOPMAssertion`.
 
@@ -100,15 +99,15 @@ More detail in [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md).
 
 - macOS 13 or later (tested on macOS 26)
 - A MacBook with a notch is ideal; works on un-notched Macs too (mascot anchors to menu bar bottom)
-- For slap detection + wake words: microphone + Speech Recognition permission (macOS prompts on first use)
-- **To open Terminal as a new tab in your existing window** (vs. a new window every time): Accessibility permission. The first time you click "Open Claude in Terminal" / slap / say the wake word, Whisky Claude shows a one-shot dialog with a button that deep-links to System Settings → Privacy & Security → Accessibility. Without it, Terminal still opens — just as a new window. With ad-hoc signing the binary's signature changes on every reinstall (you'd re-grant each time); see [Persistent permissions](#persistent-permissions) above for the stable-cert setup that fixes this once and for all.
+- For wake words: microphone + Speech Recognition permission (macOS prompts on first use)
+- **To open Terminal as a new tab in your existing window** (vs. a new window every time): Accessibility permission. The first time you click "Open Claude in Terminal" or say the wake word, Whisky Claude shows a one-shot dialog with a button that deep-links to System Settings → Privacy & Security → Accessibility. Without it, Terminal still opens — just as a new window. With ad-hoc signing the binary's signature changes on every reinstall (you'd re-grant each time); see [Persistent permissions](#persistent-permissions) above for the stable-cert setup that fixes this once and for all.
 
 ## Settings
 
 Click the menu bar icon → **Settings…**
 
 - **General** — toggle the mascot, sounds, "keep Mac awake", **and pick custom audio files** for attention + done events (with a one-click preview button)
-- **Voice** — opt into slap detection (with sensitivity slider) and wake words
+- **Voice** — opt into wake words ("hey Claude" / "hey Whisky")
 - **About** — version info, links, and the uninstall button
 
 ## Credits
