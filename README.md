@@ -1,6 +1,6 @@
 # Whisky Claude
 
-> A native macOS companion for [Claude Code](https://claude.com/claude-code). A little orange Claude character lives beside the notch on your MacBook, dances calmly when idle, and bounces + plays a sound when Claude Code needs your attention.
+> A native macOS companion for [Claude Code](https://claude.com/claude-code). **Clawd**, the Claude Code pixel pet, lives beside the notch on your MacBook — it idles when nothing's happening, hunches over a laptop and types while Claude is working, perks up when Claude needs your input, and celebrates when a task finishes. It also plays a sound when Claude needs your attention.
 
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue) ![Swift 6](https://img.shields.io/badge/Swift-6-orange) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
@@ -12,9 +12,10 @@ When you run `claude` in any terminal — Terminal.app, iTerm, Warp, whatever �
 
 | Claude Code event | What happens |
 |---|---|
-| Notification (Claude needs your input) | Mascot does a dramatic 360° spin + scale pop + **plays an attention sound** |
-| Stop (Claude finished its turn) | Mascot does a celebratory half-spin + **plays a done sound** |
-| Idle | Mascot lives its life — paces between the left and right side of the notch, dances calmly in place (Trump-style head nod + body sway), peeks up into the notch occasionally |
+| Working (Claude is thinking / running tools) | Clawd hunches over a laptop and **types** (cycling typing / thinking / debugging poses) |
+| Notification (Claude needs your input) | Clawd switches to its **notification** pose + a dramatic spin/scale pop + **plays an attention sound** |
+| Stop (Claude finished its turn) | Clawd does its **happy** pose + a celebratory bounce + **plays a done sound** |
+| Idle | Clawd lives its life — paces between the left and right side of the notch and cycles through its idle repertoire (reading, juggling, sweeping, grooving…) |
 
 Plus:
 
@@ -114,7 +115,12 @@ Click the menu bar icon → **Settings…**
 
 Whisky Claude is a heavily modified fork of [**Notchy**](https://github.com/adamlyttleapps/notchy) by [Adam Lyttle](https://github.com/adamlyttleapps), licensed under MIT. Many architectural decisions (NSPanel-over-notch, status item ownership, SwiftUI hosted in AppKit) came from his work. The mascot, choreography, voice triggers, Claude Code integration, and uninstall flow are original.
 
-The Claude character icon is the [Claude Code logo](https://www.anthropic.com), redrawn as a vector. "Claude" is a trademark of Anthropic.
+The mascot is **Clawd**, the Claude Code pixel pet by Anthropic. The animation
+frames used locally come from [**clawd-on-desk**](https://github.com/rullerzhou-afk/clawd-on-desk)
+(AGPL-3.0). **They are not distributed with this repo** — the `clawd-*.gif` art is
+gitignored and local-only. Without it the mascot simply renders nothing; supply
+your own `WhiskyClaude/Assets.xcassets/clawd-*.dataset/` gifs to see Clawd. "Claude"
+and "Clawd" are trademarks of Anthropic.
 
 ## Contributing
 
