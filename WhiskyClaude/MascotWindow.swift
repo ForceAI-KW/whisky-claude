@@ -24,8 +24,9 @@ final class MascotWindow: NSPanel {
     private let state = MascotAnimationState()
     private var screenObserver: Any?
 
-    /// Visible logical size of the mascot. Matches the original icon footprint.
-    static let mascotSize: CGFloat = 32
+    /// Visible logical size of the mascot. A little larger than the original
+    /// icon footprint so Clawd reads clearly beside the notch.
+    static let mascotSize: CGFloat = 40
 
     /// Clear gap between the notch's left/right edge and the mascot when
     /// seated. Big enough that the mascot reads as "beside the notch", not
