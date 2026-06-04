@@ -46,7 +46,15 @@ There are no tests or linting configured yet.
 See `docs/plans/2026-05-21-whisky-claude-fork.md` for the implementation plan. Active modifications:
 
 1. Cap pill horizontal width to notchWidth (no menu-bar interference)
-2. Replace Notchy's bot face with a state-aware Claude mascot (SF Symbol, Claude orange)
+2. Replace Notchy's bot face with "Clawd", the Claude Code pixel mascot — animated
+   GIFs that change pose by live Claude Code state (idle / working=typing /
+   waitingForInput=notification / taskCompleted=happy), cycling variants for
+   variety. Rendered via `ClawdGIFView` (NSImageView, nearest-neighbor) inside the
+   existing notch choreography in `MascotWindow`. **Art is LOCAL-ONLY:** the
+   `clawd-*.gif` data sets are gitignored (clawd-on-desk, AGPL-3.0 — credit to the
+   author + Anthropic's Clawd) and never pushed to this public MIT repo. Without
+   them the mascot simply renders nothing; supply your own
+   `WhiskyClaude/Assets.xcassets/clawd-*.dataset/` gifs locally.
 3. Add jump-animation when waiting for input + bounce on task complete
 4. Custom attention + done sounds (user-provided)
 5. External Claude Code event hooks via `~/.claude/pet-events/` watcher

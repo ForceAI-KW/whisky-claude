@@ -24,7 +24,7 @@ final class MascotWindow: NSPanel {
     private let state = MascotAnimationState()
     private var screenObserver: Any?
 
-    /// Visible logical size of the mascot.
+    /// Visible logical size of the mascot. Matches the original icon footprint.
     static let mascotSize: CGFloat = 32
 
     /// Clear gap between the notch's left/right edge and the mascot when
@@ -103,7 +103,6 @@ final class MascotWindow: NSPanel {
         }
         let notchLeftEdge = leftArea.maxX
         let notchRightEdge = rightArea.minX
-        let screenMidX = screen.frame.midX
         // Distance from screen midX to each notch edge.
         let halfNotchWidth = (notchRightEdge - notchLeftEdge) / 2
         // Seat positions: just past the notch edge + the mascot's own half-width + the gap.
@@ -156,6 +155,12 @@ final class MascotWindow: NSPanel {
         state.trigger(kind: kind)
     }
 
+    /// Switch Clawd's animation pool to match the live Claude Code state
+    /// (idle / working / waitingForInput / taskCompleted).
+    func setAttention(_ kind: AttentionKind) {
+        state.currentAttention = kind
+    }
+
     override var canBecomeKey: Bool { false }
     override var canBecomeMain: Bool { false }
 }
@@ -172,6 +177,8 @@ final class MascotAnimationState {
     var bounceTrigger: Int = 0
     var currentKind: MascotBounceKind = .attention
     var seatHalfWidth: CGFloat = 140
+    /// Live Claude Code state — drives which Clawd animation pool plays.
+    var currentAttention: AttentionKind = .idle
 
     func trigger(kind: MascotBounceKind) {
         currentKind = kind
@@ -196,11 +203,13 @@ struct MascotContent: View {
         TimelineView(.animation(minimumInterval: 1.0 / 60.0, paused: false)) { timeline in
             let elapsed = timeline.date.timeIntervalSinceReferenceDate
             let pose = ambientPose(at: elapsed)
+            // Clawd animation chosen by live Claude Code state, cycling through
+            // each state's pool over time so it rotates through its repertoire.
+            let gif = ClawdPose.name(for: state.currentAttention, at: elapsed)
 
-            Image("ClaudeLogo")
-                .resizable()
-                .interpolation(.high)
+            ClawdGIFView(name: gif)
                 .frame(width: MascotWindow.mascotSize, height: MascotWindow.mascotSize)
+                .clipped()
                 .scaleEffect(pose.scale * bounceScale)
                 // Heavier shadow so the mascot reads as "sitting on" the menu
                 // bar's bottom edge instead of floating.

@@ -41,6 +41,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             let kind = AttentionState.shared.current
             NSLog("[WhiskyClaude] state observer fired, kind=\(kind)")
             self?.menuBarIcon.onStateChange(kind)
+            // Switch Clawd's animation pool to match the live state.
+            self?.mascotWindow.setAttention(kind)
             // Sounds: attention → "waitingForInput", done → "taskCompleted".
             // Same MP3 filenames Notchy used so we don't have to rename assets.
             switch kind {
@@ -289,7 +291,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         alert.messageText = title
         alert.informativeText = message
         alert.alertStyle = .warning
-        if let openPanel {
+        if openPanel != nil {
             alert.addButton(withTitle: "Open Settings")
         }
         alert.addButton(withTitle: "OK")
