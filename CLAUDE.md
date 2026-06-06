@@ -63,8 +63,13 @@ See `docs/plans/2026-05-21-whisky-claude-fork.md` for the implementation plan. A
 
 ## Dependencies
 
-- **SwiftTerm** (`migueldeicaza/SwiftTerm`) — terminal emulator view (`LocalProcessTerminalView`)
-- (Task 7 adds AVFoundation usage for clap detection — already linked.)
+- **Sparkle 2.x** (SPM, `sparkle-project/Sparkle`) — in-app auto-update. The project's only SPM package.
+- AVFoundation — clap detection (system framework, already linked).
+- (NOTE: SwiftTerm is **not** linked — the terminal is opened via AppleScript in `openClaudeInTerminal`, not embedded. `Package.resolved` lists only Sparkle. The "terminal embedding / SwiftTerm / sessions / tabs / checkpoints" parts of the Architecture section above are inherited-from-Notchy description and do not reflect the current stripped-down app.)
+
+## Auto-update (Sparkle)
+
+`AppDelegate` owns an `SPUStandardUpdaterController` (auto-checks on) + a "Check for Updates…" menu item; Settings → General has an "Automatically check for updates" toggle (via `SUUpdaterBridge`). Feed = `appcast.xml` at repo root, served from `raw.githubusercontent.com/.../master/appcast.xml` (`SUFeedURL`), binaries = GitHub Release assets, integrity = EdDSA (`SUPublicEDKey` in Info.plist; private key in login Keychain, never committed). **Info.plist is explicit** (`WhiskyClaude/Info.plist`, `GENERATE_INFOPLIST_FILE = NO`) — `INFOPLIST_KEY_*` only supports an allowlist, so arbitrary keys like `SUFeedURL`/`SUPublicEDKey` need a real plist; it's excluded from the synchronized group's resource copy via a `PBXFileSystemSynchronizedBuildFileExceptionSet`. Cut releases with `./scripts/release.sh <version>` — see `docs/RELEASING.md`.
 
 ## Entitlements + TCC permissions
 

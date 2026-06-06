@@ -64,6 +64,18 @@ Either:
 
 Both paths walk through every install side-effect in reverse and back up `~/.claude/settings.json` before modifying it.
 
+## Updating
+
+Whisky Claude updates itself via [Sparkle](https://sparkle-project.org). It checks
+for new versions in the background, and you can check anytime from the menu bar
+icon → **Check for Updates…**. Toggle the background checks in Settings → General.
+Updates are EdDSA-signed and install in place — no need to re-run the installer.
+
+(The app is self-signed, not Apple-notarized, so only the *first* download is
+Gatekeeper-quarantined — right-click → Open once. Updates after that are seamless.)
+
+Maintainers: see [`docs/RELEASING.md`](docs/RELEASING.md) to cut a release.
+
 ## How it works
 
 ```
