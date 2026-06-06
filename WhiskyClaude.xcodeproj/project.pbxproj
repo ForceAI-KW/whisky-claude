@@ -17,10 +17,23 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		31844E352F7210B20074F7B7 /* WhiskyClaude */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AABBCC0000000000000000C1 /* Exceptions for WhiskyClaude folder */,
+			);
 			path = WhiskyClaude;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AABBCC0000000000000000C1 /* Exceptions for WhiskyClaude folder */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 31844E322F7210B20074F7B7 /* WhiskyClaude */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		31844E302F7210B20074F7B7 /* Frameworks */ = {
@@ -269,7 +282,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "WhiskyClaude/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Whisky Claude";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "WhiskyClaude detects your active Xcode project to manage terminal sessions.";
@@ -309,7 +323,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "WhiskyClaude/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Whisky Claude";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "WhiskyClaude detects your active Xcode project to manage terminal sessions.";

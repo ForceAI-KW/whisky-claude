@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>Whisky Claude</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>$(PRODUCT_NAME)</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>LSMinimumSystemVersion</key>
+	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
+	<key>LSUIElement</key>
+	<true/>
+	<key>NSHumanReadableCopyright</key>
+	<string></string>
+	<key>NSAppleEventsUsageDescription</key>
+	<string>WhiskyClaude detects your active Xcode project to manage terminal sessions.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Whisky Claude can listen for a double-clap to open a Claude terminal session. Audio is analyzed locally on your Mac and is never recorded, stored, or sent anywhere.</string>
+	<key>NSSpeechRecognitionUsageDescription</key>
+	<string>Whisky Claude transcribes audio on-device to detect wake phrases like 'hey claude' or 'hey whisky'. Audio never leaves your Mac.</string>
+	<key>SUFeedURL</key>
+	<string>https://raw.githubusercontent.com/ForceAI-KW/whisky-claude/master/appcast.xml</string>
+	<key>SUPublicEDKey</key>
+	<string>uwphgwYx7cawf3GqkcSOpyBUeLSIWpOKbu/ILq/KwWg=</string>
+</dict>
+</plist>
