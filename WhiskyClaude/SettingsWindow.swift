@@ -81,6 +81,16 @@ struct GeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Toggle(isOn: Binding(
+                get: { SUUpdaterBridge.shared.autoCheck },
+                set: { SUUpdaterBridge.shared.autoCheck = $0 }
+            )) {
+                Text("Automatically check for updates")
+                Text("Checks for new versions in the background. You can also check anytime from the menu bar → Check for Updates….")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)

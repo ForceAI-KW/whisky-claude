@@ -3,6 +3,18 @@ import ApplicationServices
 import Foundation
 import Sparkle
 
+/// Bridges the SwiftUI Settings "Automatically check for updates" toggle to the
+/// live Sparkle updater (which AppDelegate owns). The updater itself persists
+/// the preference; this just exposes a get/set the Toggle can bind to.
+final class SUUpdaterBridge {
+    static let shared = SUUpdaterBridge()
+    weak var updater: SPUUpdater?
+    var autoCheck: Bool {
+        get { updater?.automaticallyChecksForUpdates ?? true }
+        set { updater?.automaticallyChecksForUpdates = newValue }
+    }
+}
+
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menuBarIcon: MenuBarIcon!
@@ -26,6 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[WhiskyClaude] launched")
+
+        // Expose the Sparkle updater to the Settings "Automatically check for
+        // updates" toggle via the bridge.
+        SUUpdaterBridge.shared.updater = updaterController.updater
 
         // 1. Menu bar icon + dropdown
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
