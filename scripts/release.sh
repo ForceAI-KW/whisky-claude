@@ -11,7 +11,7 @@ cd "$(dirname "$0")/.."
 
 VERSION="${1:?usage: release.sh <version> (e.g. 1.3.0)}"
 [[ "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || { echo "✗ version must be semver (x.y.z)"; exit 1; }
-[ -z "$(git status --porcelain)" ] || { echo "✗ working tree not clean — commit/stash first"; exit 1; }
+[ -z "$(git status --porcelain --untracked-files=no)" ] || { echo "✗ tracked changes present — commit/stash first"; exit 1; }
 command -v gh >/dev/null || { echo "✗ gh CLI not found"; exit 1; }
 
 PROJ="WhiskyClaude.xcodeproj"
