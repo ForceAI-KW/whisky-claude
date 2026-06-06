@@ -70,8 +70,8 @@ See `docs/plans/2026-05-21-whisky-claude-fork.md` for the implementation plan. A
 
 The app requires `com.apple.security.automation.apple-events` for AppleScript communication with Xcode + Terminal. Task 7 adds `NSMicrophoneUsageDescription` for the clap detector.
 
-**Accessibility (TCC) — runtime grant, NOT an entitlement:** opening Terminal as a new TAB in the existing window uses `tell application "System Events" to keystroke "t" using {command down}`. Keyboard event injection is gated by Privacy → Accessibility, a separate TCC bucket from Privacy → Automation. `AppDelegate.openClaudeInTerminal` checks `AXIsProcessTrusted()` and:
-- if trusted → runs the keystroke-based "new tab in front window" path
+**Accessibility (TCC) — runtime grant, NOT an entitlement:** opening Terminal as a new TAB in the existing window injects key events via `System Events`, gated by Privacy → Accessibility (a separate TCC bucket from Privacy → Automation). `AppDelegate.openClaudeInTerminal` checks `AXIsProcessTrusted()` and:
+- if trusted → "new tab in front window" path: copies `cd '<home>' && claude` to the clipboard, then sends **physical key codes** `key code 17` (Cmd+T), `key code 9` (Cmd+V), `key code 36` (Return), and restores the clipboard. **Key codes + clipboard are KEYBOARD-LAYOUT-INDEPENDENT** — the earlier `keystroke "<string>"` (and even `keystroke "v" using {command down}`) garbled/failed under non-Latin layouts e.g. Arabic. See `memory/feedback-keystroke-injection-layout-independent.md`.
 - if not → falls back to plain `do script` (new window) AND shows a one-shot NSAlert with an "Open Settings" deep-link to Privacy & Security → Accessibility
 
 Each `./scripts/install.sh` replaces the binary with a new ad-hoc signature, which invalidates the Accessibility grant. Users must re-grant after every install. This is documented in README "Requirements".
