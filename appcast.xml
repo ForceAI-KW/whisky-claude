@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
+  <channel>
+    <title>Whisky Claude</title>
+    <link>https://raw.githubusercontent.com/ForceAI-KW/whisky-claude/master/appcast.xml</link>
+    <description>Whisky Claude updates</description>
+    <language>en</language>
+    <!-- release.sh prepends <item> entries below this line -->
+  </channel>
+</rss>
