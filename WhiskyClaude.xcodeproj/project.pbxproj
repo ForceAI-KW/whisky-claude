@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AABBCC0000000000000000A3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = AABBCC0000000000000000A2 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -26,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AABBCC0000000000000000A3 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,6 +70,7 @@
 			);
 			name = WhiskyClaude;
 			packageProductDependencies = (
+				AABBCC0000000000000000A2 /* Sparkle */,
 			);
 			productName = WhiskyClaude;
 			productReference = 31844E332F7210B20074F7B7 /* WhiskyClaude.app */;
@@ -98,6 +101,7 @@
 			mainGroup = 31844E2A2F7210B20074F7B7;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				AABBCC0000000000000000A1 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 31844E342F7210B20074F7B7 /* Products */;
@@ -352,6 +356,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AABBCC0000000000000000A1 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AABBCC0000000000000000A2 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AABBCC0000000000000000A1 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 	};
 	rootObject = 31844E2B2F7210B20074F7B7 /* Project object */;
