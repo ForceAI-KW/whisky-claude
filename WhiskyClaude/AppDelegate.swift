@@ -154,6 +154,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         }
 
         let home = NSHomeDirectory().replacingOccurrences(of: "\"", with: "\\\"")
+        // Raw shell command for the clipboard-paste path (no AppleScript escaping).
+        let command = "cd '\(NSHomeDirectory())' && claude"
 
         // Two AppleScript variants — keystroke path needs Accessibility, plain
         // `do script` path does not. Pick based on whether Terminal already has
@@ -170,21 +172,48 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let trusted = AXIsProcessTrusted()
         let useKeystroke = trusted   // only attempt the new-tab path if we can
 
+        // For the new-tab path we inject the command via the CLIPBOARD + Cmd+V
+        // sent as PHYSICAL KEY CODES, NOT `keystroke "<string>"`. Two layout traps:
+        //   1. `keystroke "cd … && claude"` types each char through the ACTIVE
+        //      KEYBOARD LAYOUT → under a non-Latin layout (e.g. Arabic) the Latin
+        //      command becomes garbage like `'/ششش/شششش' && ششش`.
+        //   2. Even `keystroke "v" using {command down}` fails under Arabic —
+        //      System Events can't map the Latin 'v' to a key in that layout, so
+        //      no paste fires (verified: file-based test created nothing under
+        //      Arabic with `keystroke "v"`, but PASSED with `key code 9`).
+        // Fix: physical key codes are layout-independent — `key code 17` (T),
+        // `key code 9` (V), `key code 36` (Return) — and paste injects the literal
+        // clipboard text. We snapshot + restore the user's clipboard around it.
+        let savedClipboard = useKeystroke ? snapshotPasteboard() : nil
+        if useKeystroke {
+            let pb = NSPasteboard.general
+            pb.clearContents()
+            pb.setString(command, forType: .string)
+            // Restore the user's clipboard once the (synchronous) AppleScript has
+            // run and Terminal has consumed the paste. Scheduled now so it fires
+            // even if executeAndReturnError errors out early.
+            if let savedClipboard {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 1.2) {
+                    Self.restorePasteboard(savedClipboard)
+                }
+            }
+        }
+
         let script: String
         if useKeystroke {
-            // New-tab-in-front-window path. Two-step: (1) Cmd+T to open a new
-            // tab in Terminal's frontmost window — the new tab takes keyboard
-            // focus immediately. (2) Type the command as keystrokes into that
-            // focused tab, then press Return.
+            // New-tab-in-front-window path. (1) Cmd+T (key code 17) opens a new
+            // tab in Terminal's frontmost window (it takes keyboard focus).
+            // (2) Cmd+V (key code 9) pastes the command into that focused tab.
+            // (3) Return (key code 36) runs it. All physical key codes → layout-
+            // independent.
             //
             // Why not `do script "cmd" in <window>` / `in selected tab of <window>`:
-            // Terminal's AppleScript model resolves both to tab 1, not the
-            // newly-created tab, so the command leaks into the source tab
-            // (verified 2026-05-28). Sending keystrokes is deterministic — they
-            // land in whatever has keyboard focus, which is the new tab.
+            // Terminal resolves both to tab 1, not the newly-created tab, so the
+            // command leaks into the source tab (verified 2026-05-28).
             //
             // No-window edge case: `do script "cmd"` (no `in` clause) creates a
-            // fresh Terminal window AND runs the command in it.
+            // fresh Terminal window AND runs the command in it (layout-safe — no
+            // keystrokes), so the clipboard is unused on that branch.
             script = """
             tell application "Terminal" to activate
             delay 0.15
@@ -194,9 +223,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 else
                     tell application "System Events"
                         tell process "Terminal"
-                            keystroke "t" using {command down}
+                            key code 17 using {command down}
                             delay 0.35
-                            keystroke "cd '\(home)' && claude"
+                            key code 9 using {command down}
+                            delay 0.2
                             key code 36
                         end tell
                     end tell
@@ -235,6 +265,27 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             didShowAccessibilityAlert = true
             showAccessibilityAlert()
         }
+    }
+
+    /// Deep-copy the current clipboard so we can restore it after a Cmd+V inject.
+    /// Preserves every representation (text, rtf, images, …), not just plain text.
+    private func snapshotPasteboard() -> [NSPasteboardItem] {
+        NSPasteboard.general.pasteboardItems?.map { item in
+            let copy = NSPasteboardItem()
+            for type in item.types {
+                if let data = item.data(forType: type) {
+                    copy.setData(data, forType: type)
+                }
+            }
+            return copy
+        } ?? []
+    }
+
+    /// Restore a previously snapshotted clipboard.
+    private static func restorePasteboard(_ items: [NSPasteboardItem]) {
+        let pb = NSPasteboard.general
+        pb.clearContents()
+        if !items.isEmpty { pb.writeObjects(items) }
     }
 
     /// Inspect an NSAppleScript error and route to the right user-visible message.
