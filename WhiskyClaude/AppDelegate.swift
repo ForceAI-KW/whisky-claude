@@ -1,11 +1,29 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import Sparkle
+
+/// Bridges the SwiftUI Settings "Automatically check for updates" toggle to the
+/// live Sparkle updater (which AppDelegate owns). The updater itself persists
+/// the preference; this just exposes a get/set the Toggle can bind to.
+final class SUUpdaterBridge {
+    static let shared = SUUpdaterBridge()
+    weak var updater: SPUUpdater?
+    var autoCheck: Bool {
+        get { updater?.automaticallyChecksForUpdates ?? true }
+        set { updater?.automaticallyChecksForUpdates = newValue }
+    }
+}
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menuBarIcon: MenuBarIcon!
     private var mascotWindow: MascotWindow!
+
+    /// Sparkle updater — automatic background checks + the "Check for Updates…"
+    /// menu item. `startingUpdater: true` begins the scheduled-check timer.
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     private var statusObserver: Any?
 
     /// Last time `openClaudeInTerminal` actually fired. Used to debounce
@@ -20,6 +38,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[WhiskyClaude] launched")
+
+        // Expose the Sparkle updater to the Settings "Automatically check for
+        // updates" toggle via the bridge.
+        SUUpdaterBridge.shared.updater = updaterController.updater
 
         // 1. Menu bar icon + dropdown
         statusItem = NSStatusBar.system.statusItem(withLength: NSStatusItem.squareLength)
@@ -114,6 +136,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        let updatesItem = NSMenuItem(title: "Check for Updates\u{2026}", action: #selector(checkForUpdatesAction(_:)), keyEquivalent: "")
+        updatesItem.target = self
+        menu.addItem(updatesItem)
+
         menu.addItem(NSMenuItem.separator())
 
         // Quit must target NSApp (not self) so #selector resolves to
@@ -125,6 +151,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
 
         return menu
+    }
+
+    @objc private func checkForUpdatesAction(_ sender: Any?) {
+        updaterController.checkForUpdates(sender)
     }
 
     @objc private func openClaudeInTerminalAction() {

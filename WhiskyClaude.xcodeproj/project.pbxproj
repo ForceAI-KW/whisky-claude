@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AABBCC0000000000000000A3 /* Sparkle in Frameworks */ = {isa = PBXBuildFile; productRef = AABBCC0000000000000000A2 /* Sparkle */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -16,16 +17,30 @@
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		31844E352F7210B20074F7B7 /* WhiskyClaude */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				AABBCC0000000000000000C1 /* Exceptions for WhiskyClaude folder */,
+			);
 			path = WhiskyClaude;
 			sourceTree = "<group>";
 		};
 /* End PBXFileSystemSynchronizedRootGroup section */
+
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		AABBCC0000000000000000C1 /* Exceptions for WhiskyClaude folder */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = 31844E322F7210B20074F7B7 /* WhiskyClaude */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		31844E302F7210B20074F7B7 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AABBCC0000000000000000A3 /* Sparkle in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -68,6 +83,7 @@
 			);
 			name = WhiskyClaude;
 			packageProductDependencies = (
+				AABBCC0000000000000000A2 /* Sparkle */,
 			);
 			productName = WhiskyClaude;
 			productReference = 31844E332F7210B20074F7B7 /* WhiskyClaude.app */;
@@ -98,6 +114,7 @@
 			mainGroup = 31844E2A2F7210B20074F7B7;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
+				AABBCC0000000000000000A1 /* XCRemoteSwiftPackageReference "Sparkle" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 31844E342F7210B20074F7B7 /* Products */;
@@ -265,7 +282,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "WhiskyClaude/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Whisky Claude";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "WhiskyClaude detects your active Xcode project to manage terminal sessions.";
@@ -305,7 +323,8 @@
 				ENABLE_HARDENED_RUNTIME = YES;
 				ENABLE_PREVIEWS = YES;
 				ENABLE_USER_SELECTED_FILES = readonly;
-				GENERATE_INFOPLIST_FILE = YES;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = "WhiskyClaude/Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "Whisky Claude";
 				INFOPLIST_KEY_LSUIElement = YES;
 				INFOPLIST_KEY_NSAppleEventsUsageDescription = "WhiskyClaude detects your active Xcode project to manage terminal sessions.";
@@ -352,6 +371,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AABBCC0000000000000000A1 /* XCRemoteSwiftPackageReference "Sparkle" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/sparkle-project/Sparkle";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.6.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AABBCC0000000000000000A2 /* Sparkle */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AABBCC0000000000000000A1 /* XCRemoteSwiftPackageReference "Sparkle" */;
+			productName = Sparkle;
+		};
+/* End XCSwiftPackageProductDependency section */
 
 	};
 	rootObject = 31844E2B2F7210B20074F7B7 /* Project object */;
