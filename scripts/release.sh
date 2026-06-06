@@ -49,29 +49,25 @@ fi
 # 3. zip (ditto preserves the bundle)
 rm -f "$ZIP"
 ( cd "$REL" && ditto -c -k --keepParent "${APPNAME}.app" "${OLDPWD}/${ZIP}" )
-LEN=$(stat -f%z "$ZIP")
 
-# 4. EdDSA-sign the zip → 'sparkle:edSignature="…" length="…"'
+# 4. EdDSA-sign the zip. sign_update prints BOTH attributes, e.g.
+#    sparkle:edSignature="…" length="…"  — use it verbatim (do NOT add length again).
 SIGINFO=$("$SIGN_UPDATE" "$ZIP")
 echo "→ signed: $SIGINFO"
 
-# 5. GitHub Release + asset
-echo "→ creating GitHub release v${VERSION}"
-gh release create "v${VERSION}" "$ZIP" --repo "$REPO" --title "v${VERSION}" --notes "Whisky Claude ${VERSION}"
+# 5. prepend appcast item (URL is deterministic — release created below).
 URL="https://github.com/${REPO}/releases/download/v${VERSION}/${ZIP}"
-
-# 6. prepend appcast item (after <language>en</language>)
 PUBDATE=$(LC_ALL=C date -u +"%a, %d %b %Y %H:%M:%S +0000")
-python3 - "$VERSION" "$BUILD" "$PUBDATE" "$URL" "$LEN" "$SIGINFO" <<'PY'
+python3 - "$VERSION" "$BUILD" "$PUBDATE" "$URL" "$SIGINFO" <<'PY'
 import sys, re
-version, build, pubdate, url, length, siginfo = sys.argv[1:7]
+version, build, pubdate, url, siginfo = sys.argv[1:6]
 item = (f"    <item>\n"
         f"        <title>{version}</title>\n"
         f"        <pubDate>{pubdate}</pubDate>\n"
         f"        <sparkle:version>{build}</sparkle:version>\n"
         f"        <sparkle:shortVersionString>{version}</sparkle:shortVersionString>\n"
         f"        <sparkle:minimumSystemVersion>13.0</sparkle:minimumSystemVersion>\n"
-        f'        <enclosure url="{url}" type="application/octet-stream" length="{length}" {siginfo} />\n'
+        f'        <enclosure url="{url}" type="application/octet-stream" {siginfo} />\n'
         f"    </item>\n")
 p = "appcast.xml"; s = open(p).read()
 s = re.sub(r"(<language>en</language>\n)", r"\1" + item, s, count=1)
@@ -79,10 +75,14 @@ open(p, "w").write(s)
 PY
 xmllint --noout appcast.xml && echo "→ appcast.xml updated"
 
-# 7. commit + tag + push
+# 6. commit + push the release commit FIRST (so the tag/release point at it)
 git add "$PROJ/project.pbxproj" appcast.xml
 git commit -m "release: v${VERSION}"
-git tag "v${VERSION}"
-git push origin HEAD --tags
+git push origin HEAD
+
+# 7. GitHub Release at this commit (creates the tag + uploads the asset)
+echo "→ creating GitHub release v${VERSION}"
+gh release create "v${VERSION}" "$ZIP" --repo "$REPO" --target "$(git rev-parse HEAD)" \
+   --title "v${VERSION}" --notes "Whisky Claude ${VERSION}"
 rm -f "$ZIP"
 echo "✓ released v${VERSION} — appcast live on master, Sparkle clients will pick it up"
