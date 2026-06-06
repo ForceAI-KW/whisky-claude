@@ -1,11 +1,17 @@
 import AppKit
 import ApplicationServices
 import Foundation
+import Sparkle
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private var statusItem: NSStatusItem!
     private var menuBarIcon: MenuBarIcon!
     private var mascotWindow: MascotWindow!
+
+    /// Sparkle updater — automatic background checks + the "Check for Updates…"
+    /// menu item. `startingUpdater: true` begins the scheduled-check timer.
+    private let updaterController = SPUStandardUpdaterController(
+        startingUpdater: true, updaterDelegate: nil, userDriverDelegate: nil)
     private var statusObserver: Any?
 
     /// Last time `openClaudeInTerminal` actually fired. Used to debounce
@@ -114,6 +120,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         settingsItem.target = self
         menu.addItem(settingsItem)
 
+        let updatesItem = NSMenuItem(title: "Check for Updates\u{2026}", action: #selector(checkForUpdatesAction(_:)), keyEquivalent: "")
+        updatesItem.target = self
+        menu.addItem(updatesItem)
+
         menu.addItem(NSMenuItem.separator())
 
         // Quit must target NSApp (not self) so #selector resolves to
@@ -125,6 +135,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         menu.addItem(quitItem)
 
         return menu
+    }
+
+    @objc private func checkForUpdatesAction(_ sender: Any?) {
+        updaterController.checkForUpdates(sender)
     }
 
     @objc private func openClaudeInTerminalAction() {
