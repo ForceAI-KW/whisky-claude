@@ -19,6 +19,7 @@ When you run `claude` in any terminal — Terminal.app, iTerm, Warp, whatever �
 
 Plus:
 
+- **Slap the Mac** — a single hard desk-slap triggers "Open Claude in Terminal" (Settings → Voice → enable). On-device via SoundAnalysis; no audio is stored or transmitted.
 - **"Hey Claude" / "Hey Whisky"** wake words — on-device via Apple's `Speech` framework. Audio never leaves your Mac.
 - **Pick your own sounds** — Settings → General lets you replace the bundled attention + done audio with any local file (`.mp3` / `.wav` / `.m4a` / `.aiff` / `.caf`). Preview button next to each picker so you can audition before saving.
 - **Keeps your Mac awake** so long-running Claude Code sessions don't get interrupted by system idle sleep. (Display sleep still respected.)
@@ -27,7 +28,7 @@ Plus:
 ## Privacy
 
 - **No network calls.** Everything runs locally.
-- **Microphone audio** (used only when the wake-word recognizer is enabled — **off by default**) is analyzed in-buffer and immediately discarded. It is never saved to disk, never sent anywhere.
+- **Microphone audio** (used only when the slap trigger or wake-word recognizer is enabled — **both off by default**) is analyzed in-buffer via a shared audio session and immediately discarded. It is never saved to disk, never sent anywhere.
 - **Claude Code hooks** write event payloads to `~/.claude/pet-events/`. Each event is consumed within milliseconds and deleted.
 - Sandboxing intentionally disabled — needs to read `~/.claude/pet-events/` and post an `IOPMAssertion`.
 
@@ -52,7 +53,23 @@ The installer:
 
 By default `./scripts/install.sh` ad-hoc-signs the binary, which means every reinstall produces a new code signature — and macOS keys TCC grants (Accessibility, Microphone, Speech Recognition) to that signature. Result: you re-grant after every reinstall.
 
-To make grants survive reinstalls, drop a stable self-signed code-signing certificate into your login keychain named **"Ahmad Sharaf Code Signing"** (rename to taste; just update the `SIGN_ID` variable in `scripts/install.sh` to match). One-time setup with OpenSSL + `security import` — recipe in [docs/STABLE_CODESIGN.md](docs/STABLE_CODESIGN.md) (TBD; see commit history for the full procedure). Once installed, every future `./scripts/install.sh` keeps the same Designated Requirement and your grants persist forever.
+To make grants survive reinstalls, drop a stable self-signed code-signing certificate into your login keychain named **"Ahmad Sharaf Code Signing"** (rename to taste; just update the `SIGN_ID` variable in `scripts/install.sh` to match). One-time setup with OpenSSL + `security import`:
+
+```bash
+# 1. Generate a self-signed RSA key + cert (valid 10 years)
+openssl req -x509 -newkey rsa:2048 -keyout codesign.key -out codesign.crt \
+  -days 3650 -nodes -subj "/CN=Ahmad Sharaf Code Signing"
+# 2. Bundle into PKCS#12
+openssl pkcs12 -export -inkey codesign.key -in codesign.crt \
+  -out codesign.p12 -passout pass:
+# 3. Import into login keychain
+security import codesign.p12 -k ~/Library/Keychains/login.keychain-db -P "" -T /usr/bin/codesign
+# 4. Mark it trusted for code signing
+security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+  -k "" ~/Library/Keychains/login.keychain-db
+```
+
+Once installed, every future `./scripts/install.sh` keeps the same Designated Requirement and your grants persist forever.
 
 The installer also handles the migration: if you've already installed Whisky Claude with ad-hoc signing and then add a stable cert, the next install detects the DR change and calls `tccutil reset` for every relevant TCC bucket so you get one clean round of prompts. From then on, no more re-grants.
 
