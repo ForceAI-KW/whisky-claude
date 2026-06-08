@@ -1,7 +1,7 @@
 # Whisky Claude — Architecture Reference
 
 Whisky Claude is a forked + modified Notchy.app that puts a Claude mascot in the macOS notch,
-animates it on Claude Code activity, and supports a double-clap to open a new Claude terminal session.
+animates it on Claude Code activity, and supports a single-slap trigger to open a new Claude terminal session.
 Fork attribution: MIT, see LICENSE.
 
 This document describes what the codebase actually contains. For the implementation plan that produced
@@ -14,37 +14,34 @@ it, see `docs/plans/2026-05-21-whisky-claude-fork.md`. For session-startup guida
 ```
 WhiskyClaude/
 ├── WhiskyClaudeApp.swift       — @main SwiftUI App; NSApplicationDelegateAdaptor → AppDelegate. Body is an empty Settings scene.
-├── AppDelegate.swift           — Owns NSStatusItem, TerminalPanel, NotchWindow. Wires EventWatcher, ClapDetector,
-│                                 hover-tracking, global backtick hotkey. Entry point for double-clap → new session.
-├── NotchWindow.swift           — Always-visible NSPanel over the notch. Pill geometry + bounce animation.
-│                                 Contains NotchDisplayState enum + ExternalEventState merge logic.
-│                                 NotchPillView (NSView) + NotchPillContent (SwiftUI overlay) defined here.
-├── BotFaceView.swift           — SF Symbol mascot (Claude orange #FF7700). Per-state symbol + tint.
-│                                 Listens to MascotAnimator.shared.onTick; triggers jump()/bounce() on state changes.
-├── MascotAnimator.swift        — CVDisplayLink-driven sin-curve Y-offset. jump() + bounce() as named aliases.
-│                                 Generation-tracked Unmanaged retain avoids double-release on rapid re-trigger.
+├── AppDelegate.swift           — Owns NSStatusItem (via MenuBarIcon), MascotWindow, EventWatcher, ClapDetector,
+│                                 KeywordRecognizer, SleepBlocker. Entry point for slap/wake-word → openClaudeInTerminal().
+├── ClapDetector.swift          — SharedMicCapture + SNClassifySoundRequest (version1 classifier).
+│                                 Broad percussive label set (knock, thump, drum, tap, tapping_hand, clapping).
+│                                 One qualifying hit above threshold + 1.5 s cooldown fires onDoubleClap (the callback;
+│                                 semantics are single-slap). Sensitivity slider maps 0..1 → threshold 0.35..0.80.
+├── ClawdMascot.swift           — GIF mascot renderer. Loads clawd-*.gif asset sets, cycles animation frames,
+│                                 switches pose on state changes (idle / working / waitingForInput / taskCompleted).
 ├── EventWatcher.swift          — DispatchSource on ~/.claude/pet-events/. Scans + deletes JSON files on .write.
 │                                 Hosts ExternalEventState (@Observable singleton) with idle-drift timers.
-├── ClapDetector.swift          — AVAudioEngine input tap + SNClassifySoundRequest (version1 classifier).
-│                                 Two clapping/applause hits within 100-600ms fire onDoubleClap. Sensitivity slider
-│                                 maps 0..1 → confidence threshold 0.5..0.9.
-├── SessionStore.swift          — @Observable singleton. TerminalSession list + active selection. Sound playback
-│                                 (AVAudioPlayer). Sleep prevention (IOPMAssertion). Session persistence (UserDefaults).
-│                                 idle→taskCompleted transition has 3s delay to avoid working→idle flickers.
-├── TerminalManager.swift       — [UUID: ClickThroughTerminalView] dict. Creates LocalProcessTerminalView per session,
-│                                 spawns user's login shell + sends `cd <dir> && clear && claude`. Reads terminal buffer
-│                                 (debounced 150ms) and classifies output into TerminalStatus states.
-├── TerminalPanel.swift         — Borderless NSPanel below status item. Hosts PanelContentView. Hides on resign-key
-│                                 unless pinned.
-├── TerminalSession.swift       — Value type: id, projectName, projectPath?, workingDirectory, terminalStatus,
-│                                 generation, hasStarted, hasBeenSelected, workingStartedAt. PersistedSession Codable.
-├── TerminalSessionView.swift   — NSViewRepresentable. Attaches/detaches ClickThroughTerminalView to a container
-│                                 based on active session ID.
-├── PanelContentView.swift      — SwiftUI root of the panel: SessionTabBar + active session content area.
-├── SessionTabBar.swift         — Tab UI per session; dot color reflects TerminalStatus. Rename/close context menu.
-└── SettingsManager.swift       — @Observable UserDefaults-backed flags: showNotch, soundsEnabled,
-                                  claudeIntegrationEnabled, clapTriggerEnabled, clapSensitivity.
-    SettingsWindow.swift        — 4 tabs (About, General, Integrations, Voice). Singleton NSWindowController.
+├── KeywordRecognizer.swift     — On-device wake-word detection via Apple Speech framework.
+│                                 Recognizes "hey claude" / "hey whisky"; fires onWakeWord → openClaudeInTerminal().
+│                                 Gated by SettingsManager.wakeWordEnabled (default OFF).
+├── MascotWindow.swift          — Borderless NSPanel at statusBar level over the notch. Hosts ClawdMascot.
+│                                 Constrained horizontally to notch outline; ignoresMouseEvents = true.
+├── MenuBarIcon.swift           — NSStatusItem ownership. Static Claude logo; menu: Open Terminal / Settings / Quit.
+├── SettingsManager.swift       — @Observable UserDefaults-backed flags: mascotEnabled, soundsEnabled,
+│                                 keepAwakeEnabled, clapTriggerEnabled, clapSensitivity, wakeWordEnabled,
+│                                 attentionSoundURL, doneSoundURL.
+├── SettingsWindow.swift        — 3 tabs (About, General, Voice). Singleton NSWindowController.
+├── SharedMicCapture.swift      — Shared AVAudioEngine + input tap; feeds both ClapDetector and KeywordRecognizer
+│                                 from a single audio session to avoid TCC double-prompt.
+├── SleepBlocker.swift          — IOPMAssertion wrapper; prevents system idle sleep while Claude is working.
+├── SoundPlayer.swift           — AVAudioPlayer wrapper. Plays .wav files from Bundle or a user-supplied URL.
+│                                 1 s debounce to prevent double-fires. Gated by SettingsManager.soundsEnabled.
+├── Uninstaller.swift           — Removes /Applications/Whisky Claude.app, unregisters Login Item, reverses
+│                                 hook patches in ~/.claude/settings.json (backs up first).
+└── WhiskyClaudeApp.swift       — (see top entry)
 ```
 
 ---
@@ -101,19 +98,20 @@ of `settings.json` is made before any modification.
 
 ---
 
-## Clap-trigger pipeline
+## Slap-trigger pipeline
 
 - Opt-in. Default OFF. Enable via Settings → Voice tab.
-- `ClapDetector.shared.start()` installs an 8192-sample tap on `AVAudioEngine.inputNode` (~185ms buffers at 44.1kHz).
+- `ClapDetector.shared.start()` uses `SharedMicCapture` (shared AVAudioEngine) to install a tap (~185ms buffers at 44.1kHz).
 - Each buffer is handed to `SNAudioStreamAnalyzer` running `SNClassifySoundRequest(classifierIdentifier: .version1)`.
-- On each `SNClassificationResult`, the detector checks for any classification in `{"clapping", "applause"}` with
-  `confidence >= confidenceThreshold`. `applause` is included because the classifier sometimes emits it for a solo
-  two-hand clap with reverb.
-- Sensitivity slider (0..1) maps to confidence threshold 0.5..0.9 via `confidenceThreshold = 0.5 + 0.4 * sensitivity`.
-- Two qualifying matches where the gap between them is 100–600ms fire `onDoubleClap`.
-- `onDoubleClap` → `SessionStore.createQuickSession()` + `showPanelBelowStatusItem()`.
+- On each `SNClassificationResult`, the detector checks for any label in the broad percussive set
+  `{"knock", "thump, thud", "drum", "tap", "tapping_(hand)", "clapping"}` with `confidence >= confidenceThreshold`.
+  The wide label set captures a single hard desk-slap regardless of exact classifier label.
+- Sensitivity slider (0..1) maps to confidence threshold 0.35..0.80 via `confidenceThreshold = 0.35 + 0.45 * sensitivity`.
+- **One** qualifying match, subject to a 1.5 s cooldown from the last fire, invokes `onDoubleClap` (the callback name
+  is kept for compatibility; the trigger is a single slap, not two claps).
+- `onDoubleClap` → `AppDelegate.openClaudeInTerminal()` (opens Terminal.app via AppleScript; no embedded panel).
 - All classification is on-device. No audio is persisted, buffered across calls, or transmitted.
-- `ClapDetector.stop()` removes the tap and stops the engine. `SettingsManager.clapTriggerEnabled` drives start/stop.
+- `ClapDetector.stop()` removes the tap. `SettingsManager.clapTriggerEnabled` drives start/stop.
 
 ---
 
@@ -127,8 +125,7 @@ Key constraints (all in `NotchWindow.swift`):
   prevent menu bar items being hidden on Macs with long menu bars (Xcode, Logic, Final Cut, etc.).
 - When any state is non-idle, the pill grows **downward** by `expandedExtraHeight = 22pt` (static constant, line 376).
   Width stays at `notchWidth`.
-- Mascot jump animation Y-offset is applied via `.offset(y: -jumpY)` inside `BotFaceView` — the SwiftUI view moves
-  inside the pill; the pill frame itself does not grow further.
+- Mascot animation is rendered inside `MascotWindow` (a separate NSPanel); it does not affect the notch pill geometry.
 - Hover state (mouse over notch) applies `hoverGrowX / 2` lateral inset — which is 0, so no visual change, but the
   code path still runs. The ear-drawing paths in `NotchPillView` are intact (see §Inert code below).
 - Collapse is debounced 0.5 s to avoid rapid cycling when terminal status flickers at session boundaries.
@@ -182,21 +179,16 @@ This code is not removed to minimize divergence from upstream Notchy and simplif
 
 ```
 WhiskyClaude/Sounds/
-├── waitingForInput.mp3   — plays on .waitingForInput (Notchy upstream asset)
-└── taskCompleted.mp3     — plays on .taskCompleted (Notchy upstream asset)
+├── waitingForInput.wav   — plays on .waitingForInput (custom attention sound)
+└── taskCompleted.wav     — plays on .taskCompleted (custom done sound)
 ```
 
-`SessionStore.playSound(named:)` uses `AVAudioPlayer`, gated by `SettingsManager.soundsEnabled` and a 1 s debounce
-to prevent double-fires. Sounds are loaded from `Bundle.main`.
-
-**Task 5 pending**: `waitingForInput.mp3` should be replaced with Ahmad's custom attention sound once the file is
-provided. Drop-in replacement — same filename, same bundle location.
+`SoundPlayer` uses `AVAudioPlayer`, gated by `SettingsManager.soundsEnabled` and a 1 s debounce
+to prevent double-fires. Sounds are loaded from `Bundle.main` unless overridden by a user-supplied URL
+(Settings → General → custom sound picker).
 
 ---
 
 ## Open items
 
-- **Task 5**: swap `waitingForInput.mp3` for Ahmad's custom sound (file not yet provided).
-- Voice keyword detection ("hey claude") via Speech framework — sibling feature to clap, not wired.
-- Custom mascot PNG or lottie in place of the SF Symbol.
 - Production codesign + notarization — current build is ad-hoc only (`CODE_SIGN_IDENTITY="-"`).

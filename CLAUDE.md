@@ -58,7 +58,7 @@ See `docs/plans/2026-05-21-whisky-claude-fork.md` for the implementation plan. A
 3. Add jump-animation when waiting for input + bounce on task complete
 4. Custom attention + done sounds (user-provided)
 5. External Claude Code event hooks via `~/.claude/pet-events/` watcher
-6. Opt-in double-clap voice trigger (AVAudioEngine)
+6. Opt-in single-slap trigger (SharedMicCapture + SoundAnalysis) + "hey claude" / "hey whisky" wake words (Apple Speech framework)
 7. Install to `/Applications/Whisky Claude.app` as a Login Item
 
 ## Dependencies
