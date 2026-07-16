@@ -91,6 +91,22 @@ struct GeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section {
+                HStack(spacing: 6) {
+                    Image(systemName: "eye.slash.fill")
+                        .foregroundStyle(.tint)
+                    Text("Stealth typing / privacy mode")
+                        .font(.body.weight(.medium))
+                }
+                Text("Type English with the Arabic keyboard layout switched on and the screen shows Arabic gibberish instead of readable text. Menu bar → Decode Stealth Clipboard (⌘⌥D) converts the clipboard back to English in place.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Privacy")
+                    .font(.callout.bold())
+                    .padding(.top, 4)
+            }
         }
         .padding(20)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
