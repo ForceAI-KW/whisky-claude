@@ -39,6 +39,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         NSLog("[WhiskyClaude] launched")
 
+        #if DEBUG
+        StealthDecoderSelfCheck.run()
+        #endif
+
         // Expose the Sparkle updater to the Settings "Automatically check for
         // updates" toggle via the bridge.
         SUUpdaterBridge.shared.updater = updaterController.updater
@@ -130,6 +134,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         openItem.target = self
         menu.addItem(openItem)
 
+        // Stealth typing / privacy mode: decode Arabic-layout gibberish (typed
+        // with the Arabic keyboard switched on so a shoulder-surfer sees
+        // nonsense) back to English, in place, on the clipboard.
+        let decodeStealthItem = NSMenuItem(title: "Decode Stealth Clipboard", action: #selector(decodeStealthClipboardAction), keyEquivalent: "d")
+        decodeStealthItem.keyEquivalentModifierMask = [.command, .option]
+        decodeStealthItem.target = self
+        menu.addItem(decodeStealthItem)
+
         menu.addItem(NSMenuItem.separator())
 
         let settingsItem = NSMenuItem(title: "Settings\u{2026}", action: #selector(showSettings), keyEquivalent: ",")
@@ -160,6 +172,28 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     @objc private func openClaudeInTerminalAction() {
         // Explicit menu click — user definitely meant it, skip debounce.
         openClaudeInTerminal(debounced: false)
+    }
+
+    /// Reads the clipboard, decodes Arabic-layout "stealth typing" gibberish
+    /// back to English (see StealthDecoder), and writes the result back to
+    /// the clipboard in place. No-ops silently if the clipboard has no text.
+    @objc private func decodeStealthClipboardAction() {
+        let pb = NSPasteboard.general
+        guard let text = pb.string(forType: .string), !text.isEmpty else {
+            NSLog("[WhiskyClaude] Decode Stealth Clipboard — clipboard has no text, nothing to decode")
+            NSSound.beep()
+            return
+        }
+
+        let decoded = StealthDecoder.decode(text)
+        pb.clearContents()
+        pb.setString(decoded, forType: .string)
+        NSLog("[WhiskyClaude] Decode Stealth Clipboard — clipboard updated")
+
+        // Reuse existing feedback so this doesn't need its own UI: the
+        // "task completed" cue sound plus a mascot bounce.
+        SoundPlayer.shared.play("taskCompleted")
+        mascotWindow.triggerBounce(kind: .done)
     }
 
     /// Opens Terminal.app and runs `claude` in the user's home directory.
