@@ -1,0 +1,254 @@
+{
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/SettingsWindow.swift": {
+    "mtime": 1780773551.1604865,
+    "hash": "5aee1659b22fde65c21b0d8cf60fd73e"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/ClawdMascot.swift": {
+    "mtime": 1780591389.3004735,
+    "hash": "36284bf03bb54134a9501c555968cb67"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/SoundPlayer.swift": {
+    "mtime": 1779387131.4270518,
+    "hash": "2aff493096d3d8a0fa091bebffe00307"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/KeywordRecognizer.swift": {
+    "mtime": 1779384674.328834,
+    "hash": "42f70aa6a44feea8df4854896db4d00f"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Uninstaller.swift": {
+    "mtime": 1779385587.4575746,
+    "hash": "38fe97418e801e1309d057c9437950f1"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/MenuBarIcon.swift": {
+    "mtime": 1779373139.052544,
+    "hash": "6d8d48a60f9454985015aebd292b84e5"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/SleepBlocker.swift": {
+    "mtime": 1779384173.6535854,
+    "hash": "81e430dc1db228ff1c819110d59cd3af"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/SharedMicCapture.swift": {
+    "mtime": 1779386188.909701,
+    "hash": "e2a5d9bdb0dd1286de4069cf3f771920"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/MascotWindow.swift": {
+    "mtime": 1780591978.6612508,
+    "hash": "716175f898cfc1a7c984e055925213c1"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/EventWatcher.swift": {
+    "mtime": 1779386188.9024906,
+    "hash": "2c1d3f29f4f86e2d89119724dcbfb2ae"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/AppDelegate.swift": {
+    "mtime": 1780773551.1600776,
+    "hash": "e6b1112aff103f52cf163c3e5948d58d"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/ClapDetector.swift": {
+    "mtime": 1779386188.9043357,
+    "hash": "a05eda8d06b16f3dc53d44c5807fa76e"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/SettingsManager.swift": {
+    "mtime": 1779387170.4982018,
+    "hash": "93b0aff2f561a363af9ba2e40db9cdab"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/WhiskyClaudeApp.swift": {
+    "mtime": 1779336463.3586934,
+    "hash": "997553ec9aa8165670d027eeb14d2f0b"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/README.md": {
+    "mtime": 1780773551.1593237,
+    "hash": "31627a6451a5c0443d6ca30bd5408fb9"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/CLAUDE.md": {
+    "mtime": 1780773551.1591592,
+    "hash": "ea7f948aca330e4f7037a4bc0e58dce6"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/SECURITY.md": {
+    "mtime": 1779386354.7717955,
+    "hash": "1a981d43673c33a151c822922e66b35a"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/docs/ARCHITECTURE.md": {
+    "mtime": 1779339859.748267,
+    "hash": "ce4c5b71e44eb9d98d0ec0e32ce59018"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/docs/RELEASING.md": {
+    "mtime": 1780773551.160665,
+    "hash": "d022c02c5e9baa49c39a9f9dde729757"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/docs/plans/2026-06-06-auto-update-plan.md": {
+    "mtime": 1780773551.160874,
+    "hash": "f70f6f1a68e58f3bb1236b13a2efd017"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/docs/plans/2026-06-06-auto-update-spec.md": {
+    "mtime": 1780773551.161123,
+    "hash": "1df6a92286609109dfd35b8ef5ce5886"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/docs/plans/2026-05-21-whisky-claude-fork.md": {
+    "mtime": 1779335099.099063,
+    "hash": "d65a132617d05d5a010cf4b85f6af2a5"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/assets/raw/README.md": {
+    "mtime": 1779388862.4751172,
+    "hash": "be7c3ff11aedd8fc6a9bda2431153fb1"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-mini-peek.dataset/clawd-mini-peek.gif": {
+    "mtime": 1780591667.930723,
+    "hash": "96c6b2ec1337243179cf40c9537ebb1b"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-mini-idle.dataset/clawd-mini-idle.gif": {
+    "mtime": 1780591667.8943198,
+    "hash": "01e5ab338c0774aea8393ddb1ce41162"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-building.dataset/clawd-building.gif": {
+    "mtime": 1780591667.589928,
+    "hash": "3920c1c2f61af862fcc68fbd913a8b6a"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-sleeping.dataset/clawd-sleeping.gif": {
+    "mtime": 1780591667.9894981,
+    "hash": "104f4e235caa73169fdab0a1be19f459"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-sweeping.dataset/clawd-sweeping.gif": {
+    "mtime": 1780591668.0009117,
+    "hash": "c3ba237b79f3620e39b6ca947186fb67"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-notification.dataset/clawd-notification.gif": {
+    "mtime": 1780591667.954379,
+    "hash": "3c623350978a773ab0273cfc443a4a21"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-conducting.dataset/clawd-conducting.gif": {
+    "mtime": 1780591667.6181486,
+    "hash": "bdd3a3fb772d55b5f820d5da058682db"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-typing.dataset/clawd-typing.gif": {
+    "mtime": 1780591668.0279555,
+    "hash": "8147f6c7800b5abcd7e5e68349b43377"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-juggling.dataset/clawd-juggling.gif": {
+    "mtime": 1780591667.7111328,
+    "hash": "d401c9e0291a1e17faa48e26511e59c4"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-carrying.dataset/clawd-carrying.gif": {
+    "mtime": 1780591667.6034956,
+    "hash": "cfffe22475647df94a6fb6734c2689fa"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/icon_64x64.png": {
+    "mtime": 1779373810.3958228,
+    "hash": "f7e4026346d7313bc5293598dc6f0ba2"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/icon_128x128.png": {
+    "mtime": 1779373810.3961298,
+    "hash": "6ddc7d251429b408f99181d9c0f126a0"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/icon_32x32.png": {
+    "mtime": 1779373810.395564,
+    "hash": "45ebd8145c53a2825632f2d29590a7d8"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/nitchyIcon.png": {
+    "mtime": 1779373810.4055407,
+    "hash": "1679595f8c87ecd359bdfaf639b309ad"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/icon_512x512.png": {
+    "mtime": 1779373810.3985026,
+    "hash": "0d27d00e3032788225cc6ae2cb07edea"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/icon_16x16.png": {
+    "mtime": 1779373810.3952842,
+    "hash": "e1693cbeff845fbda9aefcac5a8ea2d5"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/AppIcon.appiconset/icon_256x256.png": {
+    "mtime": 1779373810.396703,
+    "hash": "781648e088449521bbd500de46ef54f4"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-react-double-jump.dataset/clawd-react-double-jump.gif": {
+    "mtime": 1780591667.978222,
+    "hash": "3172cfc64801cc3058ed1a6b3b6ecf32"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-error.dataset/clawd-error.gif": {
+    "mtime": 1780591667.645441,
+    "hash": "079876e856283e1ac43ba457b5787459"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-thinking.dataset/clawd-thinking.gif": {
+    "mtime": 1780591668.013968,
+    "hash": "b590935d225e9a461c24a8f3b94009ae"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/menuIcon.imageset/menuIcon.png": {
+    "mtime": 1774796637.0,
+    "hash": "75d043f13eff51f5ae73def97271d557"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-mini-crabwalk.dataset/clawd-mini-crabwalk.gif": {
+    "mtime": 1780591667.7790663,
+    "hash": "2bebf580da69c4ccf4bd7198fbc16a94"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-mini-alert.dataset/clawd-mini-alert.gif": {
+    "mtime": 1780591667.7563193,
+    "hash": "bc2233086a2d97f413dca4c1b8737208"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-idle.dataset/clawd-idle.gif": {
+    "mtime": 1780591667.6978164,
+    "hash": "98895cc29801919ec4fa50768d7faeef"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/ClaudeLogo.imageset/ClaudeLogo.svg": {
+    "mtime": 1779369912.4544528,
+    "hash": "d7ca693a5aa3a0aad91c952bb3514788"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-bubble.dataset/clawd-bubble.gif": {
+    "mtime": 1780591667.5705678,
+    "hash": "3b31b5c1ad608669f9c5eff3daf0456d"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-react-annoyed.dataset/clawd-react-annoyed.gif": {
+    "mtime": 1780591667.9667797,
+    "hash": "fdcca99bd05f3b7877785e7da4b9d850"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-happy.dataset/clawd-happy.gif": {
+    "mtime": 1780591667.6597662,
+    "hash": "fd9b5d84de4e1b49900592fbaf946c72"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-mini-happy.dataset/clawd-mini-happy.gif": {
+    "mtime": 1780591667.8472915,
+    "hash": "139d764ef9cfd302203c265aba2271ec"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-debugger.dataset/clawd-debugger.gif": {
+    "mtime": 1780591667.6327016,
+    "hash": "2c81c38844f4aea0dce160f72f5f9028"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-idle-reading.dataset/clawd-idle-reading.gif": {
+    "mtime": 1780591667.6868541,
+    "hash": "57cd1015adfef5a1c66fcace3d7c429b"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-headphones-groove.dataset/clawd-headphones-groove.gif": {
+    "mtime": 1780591667.673024,
+    "hash": "af901e61223414a86e6ad6c20c3fba5d"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Assets.xcassets/clawd-mini-enter.dataset/clawd-mini-enter.gif": {
+    "mtime": 1780591667.8106866,
+    "hash": "2764658e8a34356af7f65b3e0f4310c4"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/assets/raw/claude-logo.svg": {
+    "mtime": 1779388862.4642239,
+    "hash": "d7ca693a5aa3a0aad91c952bb3514788"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/assets/raw/claude-logo.png": {
+    "mtime": 1779388862.466604,
+    "hash": "7d085b769c76370361592e75fdfbc41f"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/assets/raw/claude-logo.webp": {
+    "mtime": 1779388862.4688013,
+    "hash": "b265a0845bfd92285278c110d1bb8dc1"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Sounds/taskCompleted.wav": {
+    "mtime": 1779384645.5550225,
+    "hash": "a9b06c81a83c141b3f34f62897b02a3c"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/WhiskyClaude/Sounds/waitingForInput.wav": {
+    "mtime": 1779339971.7045848,
+    "hash": "ac4e63e15ee1c0d4cd88e3261071bed9"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/assets/raw/done.mp3": {
+    "mtime": 1779388862.4730947,
+    "hash": "a9b06c81a83c141b3f34f62897b02a3c"
+  },
+  "/Users/ahmadsharaf/Desktop/projects/_personal/whisky-claude/assets/raw/attention.mp3": {
+    "mtime": 1779388862.4709759,
+    "hash": "ac4e63e15ee1c0d4cd88e3261071bed9"
+  }
+}
