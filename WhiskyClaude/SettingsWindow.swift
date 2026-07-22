@@ -33,7 +33,7 @@ struct SettingsContentView: View {
                 .tabItem { Label(SettingsTab.voice.rawValue, systemImage: SettingsTab.voice.icon) }
                 .tag(SettingsTab.voice)
         }
-        .frame(width: 460, height: 280)
+        .frame(width: 460, height: 460)
     }
 }
 
@@ -108,7 +108,7 @@ struct GeneralTab: View {
                     .padding(.top, 4)
             }
         }
-        .padding(20)
+        .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
@@ -345,7 +345,7 @@ final class SettingsWindowController {
         let hostingView = NSHostingView(rootView: content)
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 460),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false

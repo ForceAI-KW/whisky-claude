@@ -54,7 +54,10 @@ See `docs/plans/2026-05-21-whisky-claude-fork.md` for the implementation plan. A
    `clawd-*.gif` data sets are gitignored (clawd-on-desk, AGPL-3.0 — credit to the
    author + Anthropic's Clawd) and never pushed to this public MIT repo. Without
    them the mascot simply renders nothing; supply your own
-   `WhiskyClaude/Assets.xcassets/clawd-*.dataset/` gifs locally.
+   `WhiskyClaude/Assets.xcassets/clawd-*.dataset/` gifs locally. **In a git
+   worktree** the ignored art is NOT copied by `git worktree add`, so a fresh
+   worktree builds with no mascot art — run `scripts/link-local-art.sh` to
+   symlink it from the primary checkout (auto-run by `new-task-worktree.sh`).
 3. Add jump-animation when waiting for input + bounce on task complete
 4. Custom attention + done sounds (user-provided)
 5. External Claude Code event hooks via `~/.claude/pet-events/` watcher
