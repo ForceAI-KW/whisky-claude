@@ -33,7 +33,7 @@ struct SettingsContentView: View {
                 .tabItem { Label(SettingsTab.voice.rawValue, systemImage: SettingsTab.voice.icon) }
                 .tag(SettingsTab.voice)
         }
-        .frame(width: 460, height: 280)
+        .frame(width: 460, height: 460)
     }
 }
 
@@ -91,8 +91,24 @@ struct GeneralTab: View {
                     .font(.caption)
                     .foregroundStyle(.secondary)
             }
+
+            Section {
+                HStack(spacing: 6) {
+                    Image(systemName: "eye.slash.fill")
+                        .foregroundStyle(.tint)
+                    Text("Stealth typing / privacy mode")
+                        .font(.body.weight(.medium))
+                }
+                Text("Type English with the Arabic keyboard layout switched on and the screen shows Arabic gibberish instead of readable text. Menu bar → Decode Stealth Clipboard (⌘⌥D) converts the clipboard back to English in place.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            } header: {
+                Text("Privacy")
+                    .font(.callout.bold())
+                    .padding(.top, 4)
+            }
         }
-        .padding(20)
+        .formStyle(.grouped)
         .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
     }
 }
@@ -329,7 +345,7 @@ final class SettingsWindowController {
         let hostingView = NSHostingView(rootView: content)
 
         let win = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 460, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 460, height: 460),
             styleMask: [.titled, .closable],
             backing: .buffered,
             defer: false
