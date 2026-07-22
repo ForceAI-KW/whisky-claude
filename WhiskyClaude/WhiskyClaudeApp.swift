@@ -5,13 +5,21 @@ struct WhiskyClaudeApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
 
     var body: some Scene {
-        // The status-bar menu's "Settings…" is the primary entry point (a
-        // floating NSWindow via SettingsWindowController). This Settings scene
-        // exists only because an App needs a non-window-opening scene; point it
-        // at the real content so the standard app-menu "Settings…" / ⌘, shows
-        // the actual settings instead of a blank window.
+        // The status-item menu's "Settings…" (a floating NSWindow via
+        // SettingsWindowController) is the sole settings entry. An App needs a
+        // scene, and Settings is the only one that doesn't force a window open at
+        // launch; its auto-added app-menu "Settings…"/⌘, item is suppressed via
+        // the .commands modifier below, so this scene is inert and never shown.
         Settings {
-            SettingsContentView()
+            EmptyView()
+        }
+        .commands {
+            // Remove SwiftUI's auto-added app-menu "Settings…" (⌘,) command so the
+            // status-item menu's "Settings…" (a floating NSWindow) is the SOLE
+            // settings entry — no duplicate/blank window. Runtime NSMenu removal
+            // doesn't stick (SwiftUI re-adds it on every menu update); this is the
+            // supported declarative suppression.
+            CommandGroup(replacing: .appSettings) { }
         }
     }
 }
