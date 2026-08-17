@@ -17,7 +17,7 @@ command -v gh >/dev/null || { echo "✗ gh CLI not found"; exit 1; }
 PROJ="WhiskyClaude.xcodeproj"
 SCHEME="WhiskyClaude"
 APPNAME="Whisky Claude"
-REPO="ForceAI-KW/whisky-claude"
+REPO="voidengineer-911/whisky-claude"
 REL="build/Build/Products/Release"
 ZIP="WhiskyClaude-${VERSION}.zip"
 SIGN_ID="Ahmad Sharaf Code Signing"
