@@ -23,8 +23,12 @@ ZIP="WhiskyClaude-${VERSION}.zip"
 SIGN_ID="Ahmad Sharaf Code Signing"
 
 # Locate Sparkle's sign_update (resolved by SPM into build/SourcePackages).
-SIGN_UPDATE=$(find build/SourcePackages ~/Library/Developer/Xcode/DerivedData \
-  -path "*Sparkle*/bin/sign_update" 2>/dev/null | head -1)
+# NOTE: `find` exits 1 when a search root is missing (build/SourcePackages does not
+# exist on a clean checkout). With `set -euo pipefail` that killed the script HERE,
+# silently — stderr was /dev/null'd, so it exited 1 printing nothing at all, and the
+# guard below never got the chance to explain why. `|| true` keeps the guard reachable.
+SIGN_UPDATE=$({ find build/SourcePackages ~/Library/Developer/Xcode/DerivedData \
+  -path "*Sparkle*/bin/sign_update" 2>/dev/null || true; } | head -1)
 [ -n "$SIGN_UPDATE" ] || { echo "✗ sign_update not found — run a build first to resolve Sparkle"; exit 1; }
 
 # 1. version bump (monotonic build number)
