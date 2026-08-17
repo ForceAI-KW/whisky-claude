@@ -26,7 +26,7 @@ test.txt
 # Settings.json backups created by install-hooks.sh
 *.bak.*
 
-# Clawd mascot art (clawd-on-desk, AGPL-3.0) — LOCAL ONLY, never pushed to this
-# public MIT repo. Provide your own WhiskyClaude/Assets.xcassets/clawd-*.dataset/
-# gifs locally; the app shows no mascot art without them.
-WhiskyClaude/Assets.xcassets/clawd-*.dataset/
+# Clawd mascot art (clawd-on-desk, AGPL-3.0) is now TRACKED — this project moved
+# from MIT to AGPL-3.0 in v1.3.0 specifically so the art can ship with it and every
+# user gets the mascot on clone. See NOTICE. Do NOT re-add an ignore rule here
+# without relicensing back, or the app renders an empty notch again.
