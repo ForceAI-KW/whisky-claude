@@ -4,6 +4,17 @@
 
 ![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue) ![Swift 6](https://img.shields.io/badge/Swift-6-orange) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
 
+> [!IMPORTANT]
+> **The mascot art is not included in this repo — you must supply it yourself.**
+> The Clawd animation frames come from [clawd-on-desk](https://github.com/rullerzhou-afk/clawd-on-desk),
+> which is **AGPL-3.0**; bundling them here would force this MIT project to relicense, so they are
+> gitignored and local-only. Clawd is also Anthropic's character — "Claude" and "Clawd" are their
+> trademarks.
+>
+> **Without the gifs the app runs fine but the mascot renders nothing** — the window is there, the
+> character isn't. Drop your own frames into `WhiskyClaude/Assets.xcassets/clawd-*.dataset/` before
+> building. See [Credits](#credits).
+
 ---
 
 ## What it does
@@ -157,4 +168,6 @@ Bug reports + PRs welcome.
 
 ## License
 
-[MIT](LICENSE) — same as upstream Notchy.
+[MIT](LICENSE) — same as upstream Notchy. Attribution and third-party notices are in [NOTICE](NOTICE).
+
+The mascot art is **not** covered by this licence and is not distributed here — see the note at the top.

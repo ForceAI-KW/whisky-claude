@@ -1,0 +1,18 @@
+Whisky Claude — attribution
+===========================
+
+Whisky Claude is a modified fork of Notchy (https://github.com/adamlyttleapps/notchy).
+Original copyright (c) 2026 Adam Lyttle, MIT licensed — see LICENSE.
+Modifications copyright (c) 2026 Ahmad Sharaf, MIT licensed.
+
+Mascot art (NOT distributed with this repository)
+-------------------------------------------------
+The Clawd animation frames used at runtime come from clawd-on-desk
+(https://github.com/rullerzhou-afk/clawd-on-desk), licensed AGPL-3.0. They are
+gitignored and are never distributed with this project or its releases, so that
+Whisky Claude itself can remain MIT. Supply your own frames under
+WhiskyClaude/Assets.xcassets/clawd-*.dataset/ to see the mascot.
+
+Clawd is the Claude Code pixel pet by Anthropic. "Claude" and "Clawd" are
+trademarks of Anthropic. This project is not affiliated with or endorsed by
+Anthropic.
