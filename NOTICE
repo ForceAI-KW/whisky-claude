@@ -1,0 +1,43 @@
+Whisky Claude — copyright and third-party notices
+=================================================
+
+Whisky Claude is licensed under the GNU Affero General Public License v3.0.
+See LICENSE for the full text.
+
+Copyright (c) 2026 Ahmad Sharaf
+
+Why AGPL-3.0 (changed in v1.3.0)
+--------------------------------
+This project was previously MIT. It moved to AGPL-3.0 so that the Clawd mascot
+art could be distributed with it. The art is AGPL-3.0, and combining AGPL work
+into a distributed program requires the whole distribution to carry the same
+copyleft. Relicensing was the honest way to ship a complete app: every user now
+gets the mascot on clone instead of an empty notch.
+
+Upstream: Notchy (MIT)
+----------------------
+Whisky Claude began as a fork of Notchy (https://github.com/adamlyttleapps/notchy).
+
+    Copyright (c) 2026 Adam Lyttle
+    Licensed under the MIT License.
+
+Those portions remain available under MIT from the upstream project. The MIT
+licence permits redistribution under stricter terms, which is what this project
+does; the original copyright notice above is preserved as MIT requires. Several
+architectural decisions (NSPanel-over-notch, status item ownership, SwiftUI
+hosted in AppKit) come from that work.
+
+Mascot art: clawd-on-desk (AGPL-3.0)
+------------------------------------
+The Clawd animation frames in WhiskyClaude/Assets.xcassets/clawd-*.dataset/ come
+from clawd-on-desk (https://github.com/rullerzhou-afk/clawd-on-desk), licensed
+AGPL-3.0. They are redistributed here under that same licence, unmodified.
+Corresponding source for this project is the repository itself.
+
+Trademarks
+----------
+Clawd is the Claude Code pixel pet by Anthropic. "Claude" and "Clawd" are
+trademarks of Anthropic. This project is an independent community tool and is
+not affiliated with, sponsored by, or endorsed by Anthropic. No claim is made to
+those marks. On request from Anthropic the mascot art will be removed and this
+project relicensed accordingly.

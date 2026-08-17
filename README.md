@@ -2,7 +2,14 @@
 
 > A native macOS companion for [Claude Code](https://claude.com/claude-code). **Clawd**, the Claude Code pixel pet, lives beside the notch on your MacBook — it idles when nothing's happening, hunches over a laptop and types while Claude is working, perks up when Claude needs your input, and celebrates when a task finishes. It also plays a sound when Claude needs your attention.
 
-![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue) ![Swift 6](https://img.shields.io/badge/Swift-6-orange) ![License: MIT](https://img.shields.io/badge/License-MIT-green)
+![macOS 13+](https://img.shields.io/badge/macOS-13%2B-blue) ![Swift 6](https://img.shields.io/badge/Swift-6-orange) ![License: AGPL v3](https://img.shields.io/badge/License-AGPL%20v3-blue)
+
+> [!NOTE]
+> **The mascot art ships with this repo** — clone and build and Clawd is there.
+> As of v1.3.0 Whisky Claude is **AGPL-3.0**, not MIT. It moved licence
+> specifically so the Clawd frames ([clawd-on-desk](https://github.com/rullerzhou-afk/clawd-on-desk),
+> AGPL-3.0) could be distributed with the app instead of leaving everyone with an
+> empty notch. See [NOTICE](NOTICE) for full attribution.
 
 ---
 
@@ -35,7 +42,7 @@ Plus:
 ## Install
 
 ```bash
-git clone https://github.com/ForceAI-KW/whisky-claude.git
+git clone https://github.com/voidengineer-911/whisky-claude.git
 cd whisky-claude
 ./scripts/install.sh
 ```
@@ -145,11 +152,10 @@ Click the menu bar icon → **Settings…**
 Whisky Claude is a heavily modified fork of [**Notchy**](https://github.com/adamlyttleapps/notchy) by [Adam Lyttle](https://github.com/adamlyttleapps), licensed under MIT. Many architectural decisions (NSPanel-over-notch, status item ownership, SwiftUI hosted in AppKit) came from his work. The mascot, choreography, voice triggers, Claude Code integration, and uninstall flow are original.
 
 The mascot is **Clawd**, the Claude Code pixel pet by Anthropic. The animation
-frames used locally come from [**clawd-on-desk**](https://github.com/rullerzhou-afk/clawd-on-desk)
-(AGPL-3.0). **They are not distributed with this repo** — the `clawd-*.gif` art is
-gitignored and local-only. Without it the mascot simply renders nothing; supply
-your own `WhiskyClaude/Assets.xcassets/clawd-*.dataset/` gifs to see Clawd. "Claude"
-and "Clawd" are trademarks of Anthropic.
+frames come from [**clawd-on-desk**](https://github.com/rullerzhou-afk/clawd-on-desk)
+(AGPL-3.0) and **are distributed with this repo** under that same licence — which is
+why Whisky Claude is AGPL-3.0 rather than MIT. "Claude" and "Clawd" are trademarks of
+Anthropic; this project is independent and not affiliated with or endorsed by them.
 
 ## Contributing
 
@@ -157,4 +163,6 @@ Bug reports + PRs welcome.
 
 ## License
 
-[MIT](LICENSE) — same as upstream Notchy.
+[**AGPL-3.0**](LICENSE). Changed from MIT in v1.3.0 so the Clawd mascot art (AGPL-3.0) could ship with the app.
+
+Upstream Notchy portions remain MIT © Adam Lyttle and are available under MIT from the upstream project — the notice is preserved in [NOTICE](NOTICE), along with mascot attribution and trademark notices.

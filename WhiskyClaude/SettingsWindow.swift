@@ -217,7 +217,7 @@ struct AboutTab: View {
                 .font(.body)
                 .foregroundStyle(.secondary)
 
-            Text("Fork of Notchy by Adam Lyttle (MIT)")
+            Text("AGPL-3.0 · Fork of Notchy by Adam Lyttle (MIT) · Mascot art: clawd-on-desk (AGPL-3.0)")
                 .font(.caption)
                 .foregroundStyle(.tertiary)
 
